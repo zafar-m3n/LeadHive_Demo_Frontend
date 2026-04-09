@@ -102,12 +102,12 @@ const LoginPage = () => {
 
           <AccentButton type="submit" loading={isSubmitting} spinner={<Spinner color="white" />} text="Login" />
 
-          <p className="text-center text-sm text-gray-600">
+          {/* <p className="text-center text-sm text-gray-600">
             Don&apos;t have an account?{" "}
             <a href="/register" className="text-accent font-medium">
               Register
             </a>
-          </p>
+          </p> */}
         </form>
       </div>
     </AuthLayout>
