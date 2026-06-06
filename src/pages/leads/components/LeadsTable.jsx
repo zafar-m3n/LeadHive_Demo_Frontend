@@ -304,6 +304,7 @@ const LeadsTable = ({
   const W_LEAD = "w-[175px]";
   const W_COMPANY = "w-[120px]";
   const W_PHONE = "w-[100px]";
+  const W_DETAILS = "w-[230px]";
   const W_ASSIGNEE = "w-[175px]";
   const W_DATE = "w-[170px]";
 
@@ -315,7 +316,7 @@ const LeadsTable = ({
   const showActionsCol = mode === "admin" || mode === "manager";
 
   const colsCount =
-    (showSelection ? 1 : 0) + 1 + 1 + 1 + 1 + 1 + 1 + 1 + (showAssigneeCol ? 1 : 0) + (showActionsCol ? 1 : 0);
+    (showSelection ? 1 : 0) + 1 + 1 + 1 + 1 + 1 + 1 + (showAssigneeCol ? 1 : 0) + (showActionsCol ? 1 : 0);
 
   return (
     <div className="w-full overflow-x-auto rounded-lg border border-gray-200 relative">
@@ -362,8 +363,7 @@ const LeadsTable = ({
             <th className={`px-3 py-2 text-left font-semibold ${W_LEAD}`}>Lead</th>
             <th className={`px-3 py-2 text-left font-semibold ${W_COMPANY}`}>Company</th>
             <th className={`px-3 py-2 text-left font-semibold hidden md:table-cell ${W_PHONE}`}>Phone</th>
-            <th className="px-3 py-2 text-left font-semibold">Status</th>
-            <th className="px-3 py-2 text-left font-semibold hidden md:table-cell">Source</th>
+            <th className={`px-3 py-2 text-left font-semibold ${W_DETAILS}`}>Lead Details</th>
             <th className={`px-3 py-2 text-left font-semibold ${W_DATE}`}>Created</th>
 
             <th className={`px-3 py-2 text-left font-semibold ${W_DATE}`}>
@@ -397,6 +397,7 @@ const LeadsTable = ({
               const statusValue = row.LeadStatus?.value || "";
               const sourceLabel = row.LeadSource?.label || "-";
               const sourceValue = row.LeadSource?.value || "";
+              const campaignLabel = row.Campaign?.label || row.Campaign?.value || row.campaign_id || "-";
               const phone = row.phone && row.phone.length > 4 ? row.phone : "N/A";
               const assigneeName = getCurrentAssigneeName(row);
               const created = formatDate(row.created_at);
@@ -469,32 +470,38 @@ const LeadsTable = ({
                     </div>
                   </td>
 
-                  <td className="px-3 py-2 align-top">
-                    {canEditThisStatus ? (
-                      <Tooltip content="Change status" placement="top" theme="light">
-                        <button
-                          data-status-trigger={row.id}
-                          onClick={(e) => toggleStatusDropdown(row, e)}
-                          className="status-trigger inline-flex items-center gap-1 text-gray-800 hover:text-black"
-                          aria-label="Change status"
-                        >
-                          <Badge text={statusLabel} color={getStatusColor(statusValue)} size="sm" rounded="rounded" />
-                          <IconComponent
-                            icon="mdi:chevron-down"
-                            width={18}
-                            className={`shrink-0 transition-transform duration-200 ${
-                              statusDropdownOpen === row.id ? "rotate-180" : ""
-                            }`}
-                          />
-                        </button>
-                      </Tooltip>
-                    ) : (
-                      <Badge text={statusLabel} color={getStatusColor(statusValue)} size="sm" rounded="rounded" />
-                    )}
-                  </td>
+                  <td className={`px-3 py-2 align-top ${W_DETAILS}`}>
+                    <div className="flex flex-col items-start gap-1.5">
+                      {canEditThisStatus ? (
+                        <Tooltip content="Change status" placement="top" theme="light">
+                          <button
+                            data-status-trigger={row.id}
+                            onClick={(e) => toggleStatusDropdown(row, e)}
+                            className="status-trigger inline-flex items-center gap-1 text-gray-800 hover:text-black"
+                            aria-label="Change status"
+                          >
+                            <Badge text={statusLabel} color={getStatusColor(statusValue)} size="sm" rounded="rounded" />
+                            <IconComponent
+                              icon="mdi:chevron-down"
+                              width={18}
+                              className={`shrink-0 transition-transform duration-200 ${
+                                statusDropdownOpen === row.id ? "rotate-180" : ""
+                              }`}
+                            />
+                          </button>
+                        </Tooltip>
+                      ) : (
+                        <Badge text={statusLabel} color={getStatusColor(statusValue)} size="sm" rounded="rounded" />
+                      )}
 
-                  <td className="px-3 py-2 hidden md:table-cell align-top">
-                    <Badge text={sourceLabel} color={getSourceColor(sourceValue)} size="sm" rounded="rounded" />
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <Badge text={sourceLabel} color={getSourceColor(sourceValue)} size="sm" rounded="rounded" />
+
+                        <span className="inline-flex max-w-[180px] items-center rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">
+                          <span className="truncate">{campaignLabel}</span>
+                        </span>
+                      </div>
+                    </div>
                   </td>
 
                   <td className={`px-3 py-2 align-top ${W_DATE}`}>

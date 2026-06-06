@@ -63,6 +63,9 @@ const SalesLeadsModal = ({ isOpen, onClose, onSubmit, editingLead, statuses, loa
   const sourceValue = editingLead?.LeadSource?.value || "";
   const sourceColor = getSourceColor ? getSourceColor(sourceValue) : "gray";
 
+  const campaignLabel =
+    editingLead?.Campaign?.label || editingLead?.Campaign?.value || editingLead?.campaign_id || "No campaign";
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Lead Overview & Update" size="xl" centered={true}>
       {!editingLead ? (
@@ -87,6 +90,7 @@ const SalesLeadsModal = ({ isOpen, onClose, onSubmit, editingLead, statuses, loa
                 <Badge text={editingLead?.email || "No email"} color="gray" size="sm" icon="mdi:email-outline" />
                 <Badge text={editingLead?.phone || "No phone"} color="gray" size="sm" icon="mdi:phone-outline" />
                 <Badge text={sourceLabel} color={sourceColor} size="sm" icon="mdi:source-branch" />
+                <Badge text={campaignLabel} color="gray" size="sm" icon="mdi:bullhorn-outline" />
                 <Badge text={assigneeName} color="indigo" size="sm" icon="mdi:account-circle-outline" />
               </div>
             </div>
@@ -108,6 +112,8 @@ const SalesLeadsModal = ({ isOpen, onClose, onSubmit, editingLead, statuses, loa
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <KV label="Company" value={editingLead?.company || "-"} />
               <KV label="Country" value={editingLead?.country || "-"} />
+              <KV label="Source" value={sourceLabel} />
+              <KV label="Campaign" value={campaignLabel} />
             </div>
           </div>
 

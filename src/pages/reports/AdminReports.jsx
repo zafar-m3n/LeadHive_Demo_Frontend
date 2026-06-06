@@ -320,16 +320,19 @@ const AdminReports = () => {
   };
 
   const callsBySource = reportData?.cards?.callsBySource || [];
+  const callsByCampaign = reportData?.cards?.callsByCampaign || [];
 
   const salesFromCalls = reportData?.cards?.salesFromCalls || {
     totalCustomers: 0,
     bySource: [],
+    byCampaign: [],
   };
 
   const agentPerformance = reportData?.cards?.agentPerformance ||
     reportData?.cards?.monthlyPerformance || {
       statuses: [],
       sources: [],
+      campaigns: [],
       agents: [],
     };
 
@@ -360,6 +363,10 @@ const AdminReports = () => {
   ).length;
 
   const totalCallsFromSources = callsBySource.reduce((sum, src) => sum + (Number(src.call_count) || 0), 0);
+  const totalCallsFromCampaigns = callsByCampaign.reduce(
+    (sum, campaign) => sum + (Number(campaign.call_count) || 0),
+    0,
+  );
 
   const nonZeroStatusColumns = (agentPerformance.statuses || [])
     .filter((status) => String(status.value || "").toLowerCase() !== "customer")
@@ -462,6 +469,44 @@ const AdminReports = () => {
     return row[col.key];
   };
 
+  const nonZeroCampaignColumns = (agentPerformance.campaigns || [])
+    .filter((campaign) =>
+      agents.some((agent) => {
+        const entry = agent.campaign_counts?.find((item) => Number(item.campaign_id) === campaign.id);
+        return entry && Number(entry.count) > 0;
+      }),
+    )
+    .map((campaign) => ({
+      key: `campaign_${campaign.id}`,
+      label: campaign.label || campaign.value || `Campaign ${campaign.id}`,
+    }));
+
+  const agentCampaignColumns = [{ key: "full_name", label: "Agent" }, ...nonZeroCampaignColumns];
+
+  const renderAgentCampaignCell = (row, col) => {
+    if (!row) return null;
+
+    if (col.key === "full_name") {
+      const name = row.full_name || "Unknown User";
+      const email = row.email || "-";
+
+      return (
+        <div className="flex flex-col overflow-hidden text-left">
+          <span className="font-medium text-gray-900 truncate">{name}</span>
+          <span className="text-xs text-gray-600 truncate">{email}</span>
+        </div>
+      );
+    }
+
+    if (col.key.startsWith("campaign_")) {
+      const campaignId = Number(col.key.replace("campaign_", ""));
+      const entry = row.campaign_counts?.find((campaign) => Number(campaign.campaign_id) === campaignId);
+      return entry ? Number(entry.count) || 0 : 0;
+    }
+
+    return row[col.key];
+  };
+
   const periodLabelRaw = reportData?.period?.label || currentPeriodPreview;
   const periodLabel =
     reportData?.period?.report_type === REPORT_TYPES.DAILY && reportData?.period?.date
@@ -493,13 +538,21 @@ const AdminReports = () => {
         ? "No source-based assignment data for this day."
         : "No source-based assignment data for this period.";
 
+  const campaignBreakdownEmptyMessage =
+    reportType === REPORT_TYPES.MONTHLY
+      ? "No campaign-based assignment data for this month."
+      : reportType === REPORT_TYPES.DAILY
+        ? "No campaign-based assignment data for this day."
+        : "No campaign-based assignment data for this period.";
+
   return (
     <DefaultLayout>
       <div className="space-y-6">
         <div className="flex flex-col gap-2">
           <h1 className="text-2xl font-bold text-gray-800">Reports</h1>
           <p className="text-gray-600">
-            View call activity, source breakdowns, conversions, and agent performance by selected report type.
+            View call activity, source breakdowns, campaign breakdowns, conversions, and agent performance by selected
+            report type.
           </p>
         </div>
 
@@ -615,7 +668,7 @@ const AdminReports = () => {
                 type="button"
                 onClick={handleGenerateReport}
                 disabled={!canGenerate}
-                className="inline-flex items-center justify-center rounded-md bg-[#7ed957] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex items-center justify-center rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {loading ? "Generating..." : "Generate Report"}
               </button>
@@ -659,7 +712,7 @@ const AdminReports = () => {
               </div>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-4">
                 <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Call Statistics</h2>
                 <p className="mt-3 text-3xl font-bold text-gray-900">{totalCalls}</p>
@@ -684,8 +737,42 @@ const AdminReports = () => {
                     const pct = totalCallsFromSources > 0 ? ((count / totalCallsFromSources) * 100).toFixed(1) : null;
 
                     return (
-                      <div key={src.source_id} className="flex items-center justify-between text-xs">
+                      <div
+                        key={src.source_id || src.value || src.label}
+                        className="flex items-center justify-between text-xs"
+                      >
                         <span className="text-gray-700">{src.label || src.value || "Unknown"}</span>
+                        <span className="text-gray-900 font-semibold">
+                          {count}
+                          {pct !== null && <span className="ml-1 text-[0.7rem] text-gray-500">({pct}%)</span>}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-4">
+                <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Calls by Campaign</h2>
+                <p className="mt-3 text-3xl font-bold text-gray-900">{totalCallsFromCampaigns}</p>
+                <p className="mt-1 text-xs text-gray-500">Calls with a tracked campaign</p>
+
+                <div className="mt-4 space-y-2 max-h-40 overflow-y-auto">
+                  {callsByCampaign.length === 0 && (
+                    <p className="text-xs text-gray-400">No campaign data for this period.</p>
+                  )}
+
+                  {callsByCampaign.map((campaign) => {
+                    const count = Number(campaign.call_count) || 0;
+                    const pct =
+                      totalCallsFromCampaigns > 0 ? ((count / totalCallsFromCampaigns) * 100).toFixed(1) : null;
+
+                    return (
+                      <div
+                        key={campaign.campaign_id || campaign.value || campaign.label}
+                        className="flex items-center justify-between text-xs"
+                      >
+                        <span className="text-gray-700">{campaign.label || campaign.value || "Unknown"}</span>
                         <span className="text-gray-900 font-semibold">
                           {count}
                           {pct !== null && <span className="ml-1 text-[0.7rem] text-gray-500">({pct}%)</span>}
@@ -703,25 +790,58 @@ const AdminReports = () => {
                   Leads converted to <span className="font-semibold">Customer</span> in the selected period
                 </p>
 
-                <div className="mt-4 space-y-2 max-h-40 overflow-y-auto">
-                  {(!salesFromCalls.bySource || salesFromCalls.bySource.length === 0) && (
-                    <p className="text-xs text-gray-400">No customers from calls for this period yet.</p>
-                  )}
+                <div className="mt-4 space-y-3 max-h-40 overflow-y-auto">
+                  <div className="space-y-2">
+                    <p className="text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500">By Source</p>
 
-                  {salesFromCalls.bySource?.map((src) => {
-                    const count = Number(src.count) || 0;
-                    const pct = totalCustomers > 0 ? ((count / totalCustomers) * 100).toFixed(1) : null;
+                    {(!salesFromCalls.bySource || salesFromCalls.bySource.length === 0) && (
+                      <p className="text-xs text-gray-400">No source customers from calls for this period yet.</p>
+                    )}
 
-                    return (
-                      <div key={src.source_id} className="flex items-center justify-between text-xs">
-                        <span className="text-gray-700">{src.label || src.value || "Unknown"}</span>
-                        <span className="text-gray-900 font-semibold">
-                          {count}
-                          {pct !== null && <span className="ml-1 text-[0.7rem] text-gray-500">({pct}%)</span>}
-                        </span>
-                      </div>
-                    );
-                  })}
+                    {salesFromCalls.bySource?.map((src) => {
+                      const count = Number(src.count) || 0;
+                      const pct = totalCustomers > 0 ? ((count / totalCustomers) * 100).toFixed(1) : null;
+
+                      return (
+                        <div
+                          key={src.source_id || src.value || src.label}
+                          className="flex items-center justify-between text-xs"
+                        >
+                          <span className="text-gray-700">{src.label || src.value || "Unknown"}</span>
+                          <span className="text-gray-900 font-semibold">
+                            {count}
+                            {pct !== null && <span className="ml-1 text-[0.7rem] text-gray-500">({pct}%)</span>}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="space-y-2 border-t border-gray-100 pt-3">
+                    <p className="text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500">By Campaign</p>
+
+                    {(!salesFromCalls.byCampaign || salesFromCalls.byCampaign.length === 0) && (
+                      <p className="text-xs text-gray-400">No campaign customers from calls for this period yet.</p>
+                    )}
+
+                    {salesFromCalls.byCampaign?.map((campaign) => {
+                      const count = Number(campaign.count) || 0;
+                      const pct = totalCustomers > 0 ? ((count / totalCustomers) * 100).toFixed(1) : null;
+
+                      return (
+                        <div
+                          key={campaign.campaign_id || campaign.value || campaign.label}
+                          className="flex items-center justify-between text-xs"
+                        >
+                          <span className="text-gray-700">{campaign.label || campaign.value || "Unknown"}</span>
+                          <span className="text-gray-900 font-semibold">
+                            {count}
+                            {pct !== null && <span className="ml-1 text-[0.7rem] text-gray-500">({pct}%)</span>}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </div>
@@ -762,6 +882,26 @@ const AdminReports = () => {
                   data={agents}
                   renderCell={renderAgentSourceCell}
                   emptyMessage={sourceBreakdownEmptyMessage}
+                />
+              </div>
+            </div>
+
+            <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 mt-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-800">Agent Campaign Breakdown</h2>
+                  <p className="text-xs text-gray-500">
+                    Number of leads per campaign, based on latest assignments in {periodLabel || "selected period"}.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-4 overflow-x-auto">
+                <Table
+                  columns={agentCampaignColumns}
+                  data={agents}
+                  renderCell={renderAgentCampaignCell}
+                  emptyMessage={campaignBreakdownEmptyMessage}
                 />
               </div>
             </div>

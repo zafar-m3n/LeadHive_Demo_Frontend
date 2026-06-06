@@ -1,4 +1,4 @@
-// src/pages/sales/SalesDashboard.jsx
+// src/pages/dashboard/RetentionDashboard.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import DefaultLayout from "@/layouts/DefaultLayout";
 import API from "@/services/index";
@@ -10,24 +10,24 @@ import { getStatusColor, getSourceColor } from "@/utils/leadColors";
 
 import { ResponsiveContainer, CartesianGrid, Tooltip, XAxis, YAxis, BarChart, Bar } from "recharts";
 
-const SalesDashboard = () => {
+const RetentionDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [summary, setSummary] = useState(null);
 
   const fetchSummary = async () => {
     try {
       setLoading(true);
-      const res = await API.private.getSalesRepDashboardSummary({ recentLimit: 8 });
+      const res = await API.private.getRetentionDashboardSummary({ recentLimit: 8 });
       const code = res?.data?.code;
       const payload = res?.data?.data;
       if (code === "OK" && payload) {
         setSummary(payload);
       } else {
-        Notification.error(res?.data?.error || "Failed to load sales rep dashboard");
+        Notification.error(res?.data?.error || "Failed to load retention dashboard");
       }
     } catch (err) {
-      console.error("[SalesDashboard] getSalesRepDashboardSummary error:", err);
-      Notification.error(err?.response?.data?.error || "Failed to load sales rep dashboard");
+      console.error("[RetentionDashboard] getRetentionDashboardSummary error:", err);
+      Notification.error(err?.response?.data?.error || "Failed to load retention dashboard");
     } finally {
       setLoading(false);
     }
@@ -111,7 +111,7 @@ const SalesDashboard = () => {
     <DefaultLayout>
       <div className="space-y-6">
         <div className="flex justify-between items-center">
-          <Heading>Sales Rep Dashboard</Heading>
+          <Heading>Retention Dashboard</Heading>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
@@ -192,4 +192,4 @@ const SalesDashboard = () => {
   );
 };
 
-export default SalesDashboard;
+export default RetentionDashboard;

@@ -54,14 +54,19 @@ const LoginPage = () => {
         token.scheduleAutoLogout();
 
         const userData = res.data.data.user;
+        const role = userData?.role?.value;
 
         // ✅ Redirect based on role
-        if (userData.role.value === "admin") {
+        if (role === "admin") {
           navigate("/admin/dashboard");
-        } else if (userData.role.value === "manager") {
+        } else if (role === "manager") {
           navigate("/manager/dashboard");
+        } else if (role === "sales_rep") {
+          navigate("/sales/dashboard");
+        } else if (role === "retention") {
+          navigate("/retention/dashboard");
         } else {
-          navigate("/dashboard");
+          navigate("/login");
         }
       } else {
         Notification.error(res.data.error || "Unexpected response from server.");

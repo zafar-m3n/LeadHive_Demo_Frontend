@@ -32,8 +32,17 @@ const LabelFormModal = ({ isOpen, onClose, onSubmit, editing, loading }) => {
   const [label, setLabel] = useState("");
 
   useEffect(() => {
-    setLabel(editing?.label || "");
-  }, [editing]);
+    if (isOpen) {
+      setLabel(editing?.label || "");
+    } else {
+      setLabel("");
+    }
+  }, [isOpen, editing]);
+
+  const handleClose = () => {
+    setLabel("");
+    onClose();
+  };
 
   const submit = (e) => {
     e.preventDefault();
@@ -45,7 +54,7 @@ const LabelFormModal = ({ isOpen, onClose, onSubmit, editing, loading }) => {
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={editing ? "Edit" : "Add"} size="sm">
+    <Modal isOpen={isOpen} onClose={handleClose} title={editing ? "Edit" : "Add"} size="sm">
       <form onSubmit={submit} className="space-y-4">
         <TextInput
           label="Label"
@@ -55,7 +64,7 @@ const LabelFormModal = ({ isOpen, onClose, onSubmit, editing, loading }) => {
         />
         <div className="pt-2 flex justify-end gap-3">
           <div className="w-fit">
-            <GrayButton text="Cancel" onClick={onClose} />
+            <GrayButton text="Cancel" onClick={handleClose} />
           </div>
           <div className="w-fit">
             <AccentButton type="submit" text={editing ? "Update" : "Create"} loading={loading} />
@@ -70,7 +79,7 @@ const LabelFormModal = ({ isOpen, onClose, onSubmit, editing, loading }) => {
 // Main Component
 // -------------------------------------
 const AdminSettings = () => {
-  const [activeTab, setActiveTab] = useState("sources"); // 'sources' | 'statuses'
+  const [activeTab, setActiveTab] = useState("sources"); // 'sources' | 'statuses' | 'campaigns'
 
   // Common UI state
   const [loading, setLoading] = useState(false);
@@ -92,6 +101,15 @@ const AdminSettings = () => {
   const [editingStatus, setEditingStatus] = useState(null);
   const [deleteStatusModalOpen, setDeleteStatusModalOpen] = useState(false);
   const [statusToDelete, setStatusToDelete] = useState(null);
+
+  // Campaigns state
+  const [campaigns, setCampaigns] = useState([]);
+  const [campaignsPage, setCampaignsPage] = useState(1);
+  const [campaignsTotalPages, setCampaignsTotalPages] = useState(1);
+  const [campaignModalOpen, setCampaignModalOpen] = useState(false);
+  const [editingCampaign, setEditingCampaign] = useState(null);
+  const [deleteCampaignModalOpen, setDeleteCampaignModalOpen] = useState(false);
+  const [campaignToDelete, setCampaignToDelete] = useState(null);
 
   // -------------------------------------
   // Fetchers
@@ -126,11 +144,27 @@ const AdminSettings = () => {
     }
   };
 
+  const fetchCampaigns = async (page = campaignsPage) => {
+    try {
+      const res = await API.private.listAdminCampaigns({ page, pageSize: 10 });
+      if (!isOK(res)) {
+        Notification.error(res?.data?.error || "Failed to fetch lead campaigns");
+        return;
+      }
+      const { items, totalPages } = pickListPayload(res);
+      setCampaigns(items || []);
+      setCampaignsTotalPages(totalPages || 1);
+    } catch (err) {
+      Notification.error(err.response?.data?.error || "Failed to fetch lead campaigns");
+    }
+  };
+
   useEffect(() => {
     if (activeTab === "sources") fetchSources(sourcesPage);
     if (activeTab === "statuses") fetchStatuses(statusesPage);
+    if (activeTab === "campaigns") fetchCampaigns(campaignsPage);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, sourcesPage, statusesPage]);
+  }, [activeTab, sourcesPage, statusesPage, campaignsPage]);
 
   // -------------------------------------
   // CRUD Handlers: Sources
@@ -256,6 +290,67 @@ const AdminSettings = () => {
   };
 
   // -------------------------------------
+  // CRUD Handlers: Campaigns
+  // -------------------------------------
+  const openAddCampaign = () => {
+    setEditingCampaign(null);
+    setCampaignModalOpen(true);
+  };
+
+  const openEditCampaign = (row) => {
+    setEditingCampaign(row);
+    setCampaignModalOpen(true);
+  };
+
+  const submitCampaign = async ({ label }) => {
+    setLoading(true);
+    try {
+      let res;
+      if (editingCampaign) {
+        res = await API.private.updateAdminCampaign(editingCampaign.id, { label });
+      } else {
+        res = await API.private.createAdminCampaign({ label });
+      }
+      if (isOK(res)) {
+        Notification.success(editingCampaign ? "Lead campaign updated" : "Lead campaign created");
+        setCampaignModalOpen(false);
+        setEditingCampaign(null);
+        await fetchCampaigns();
+      } else {
+        Notification.error(res?.data?.error || "Failed to save lead campaign");
+      }
+    } catch (err) {
+      Notification.error(err.response?.data?.error || "Failed to save lead campaign");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const confirmDeleteCampaign = (row) => {
+    setCampaignToDelete(row);
+    setDeleteCampaignModalOpen(true);
+  };
+
+  const handleDeleteCampaign = async () => {
+    if (!campaignToDelete) return;
+    try {
+      const res = await API.private.deleteAdminCampaign(campaignToDelete.id);
+      if (isOK(res)) {
+        Notification.success("Lead campaign deleted");
+        await fetchCampaigns();
+      } else {
+        Notification.error(res?.data?.error || "Failed to delete lead campaign");
+      }
+    } catch (err) {
+      const msg = err.response?.data?.error || "Failed to delete lead campaign";
+      Notification.error(msg);
+    } finally {
+      setDeleteCampaignModalOpen(false);
+      setCampaignToDelete(null);
+    }
+  };
+
+  // -------------------------------------
   // Tables
   // -------------------------------------
   const columns = useMemo(
@@ -264,20 +359,28 @@ const AdminSettings = () => {
       { key: "value", label: "Value" },
       { key: "actions", label: "Actions" },
     ],
-    []
+    [],
   );
 
   const renderActions = (row, type) => (
     <div className="flex space-x-2">
       <button
-        onClick={() => (type === "source" ? openEditSource(row) : openEditStatus(row))}
+        onClick={() =>
+          type === "source" ? openEditSource(row) : type === "status" ? openEditStatus(row) : openEditCampaign(row)
+        }
         className="inline-flex items-center px-2 py-1 border border-gray-300 rounded hover:bg-gray-100"
         title="Edit"
       >
         <IconComponent icon="mdi:pencil" width={20} className="text-gray-800" />
       </button>
       <button
-        onClick={() => (type === "source" ? confirmDeleteSource(row) : confirmDeleteStatus(row))}
+        onClick={() =>
+          type === "source"
+            ? confirmDeleteSource(row)
+            : type === "status"
+              ? confirmDeleteStatus(row)
+              : confirmDeleteCampaign(row)
+        }
         className="inline-flex items-center px-2 py-1 border border-gray-300 rounded hover:bg-gray-100"
         title="Delete"
       >
@@ -295,8 +398,10 @@ const AdminSettings = () => {
           <div className="flex gap-2">
             {activeTab === "sources" ? (
               <AccentButton text="Add Source" onClick={openAddSource} />
-            ) : (
+            ) : activeTab === "statuses" ? (
               <AccentButton text="Add Status" onClick={openAddStatus} />
+            ) : (
+              <AccentButton text="Add Campaign" onClick={openAddCampaign} />
             )}
           </div>
         </div>
@@ -322,6 +427,16 @@ const AdminSettings = () => {
             onClick={() => setActiveTab("statuses")}
           >
             Lead Statuses
+          </button>
+          <button
+            className={`px-4 py-2 -mb-px border-b-2 ${
+              activeTab === "campaigns"
+                ? "border-gray-800 text-gray-900 font-semibold"
+                : "border-transparent text-gray-500 hover:text-gray-700"
+            }`}
+            onClick={() => setActiveTab("campaigns")}
+          >
+            Lead Campaigns
           </button>
         </div>
 
@@ -385,7 +500,7 @@ const AdminSettings = () => {
               </div>
             </Modal>
           </>
-        ) : (
+        ) : activeTab === "statuses" ? (
           <>
             <Table
               columns={columns}
@@ -439,6 +554,65 @@ const AdminSettings = () => {
                   Cancel
                 </button>
                 <button onClick={handleDeleteStatus} className="text-sm px-4 py-1.5 rounded bg-red-500 text-white">
+                  Delete
+                </button>
+              </div>
+            </Modal>
+          </>
+        ) : (
+          <>
+            <Table
+              columns={columns}
+              data={campaigns}
+              emptyMessage="No lead campaigns found."
+              renderCell={(row, col) => {
+                switch (col.key) {
+                  case "actions":
+                    return renderActions(row, "campaign");
+                  default:
+                    return row[col.key] || "-";
+                }
+              }}
+            />
+            {campaignsTotalPages >= 1 && (
+              <Pagination
+                currentPage={campaignsPage}
+                totalPages={campaignsTotalPages}
+                onPageChange={(p) => setCampaignsPage(p)}
+                className="mt-4"
+              />
+            )}
+
+            {/* Add/Edit Campaign Modal */}
+            <LabelFormModal
+              isOpen={campaignModalOpen}
+              onClose={() => {
+                setCampaignModalOpen(false);
+                setEditingCampaign(null);
+              }}
+              onSubmit={submitCampaign}
+              editing={editingCampaign}
+              loading={loading}
+            />
+
+            {/* Delete Campaign Modal */}
+            <Modal
+              isOpen={deleteCampaignModalOpen}
+              onClose={() => setDeleteCampaignModalOpen(false)}
+              title="Confirm Deletion"
+              size="sm"
+            >
+              <p>
+                Are you sure you want to delete <span className="font-semibold">{campaignToDelete?.label}</span>?
+              </p>
+              <div className="flex justify-end gap-3 mt-4">
+                <button
+                  onClick={() => setDeleteCampaignModalOpen(false)}
+                  className="text-sm px-4 py-1.5 rounded bg-gray-300"
+                >
+                  Cancel
+                </button>
+                <button onClick={handleDeleteCampaign} className="text-sm px-4 py-1.5 rounded bg-red-500 text-white">
                   Delete
                 </button>
               </div>

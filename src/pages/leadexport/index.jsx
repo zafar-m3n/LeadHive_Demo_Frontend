@@ -41,15 +41,18 @@ const LeadExport = () => {
   // lookups
   const [statuses, setStatuses] = useState([]);
   const [sources, setSources] = useState([]);
+  const [campaigns, setCampaigns] = useState([]);
   const [loadingLookups, setLoadingLookups] = useState(false);
 
   // filters
   const [statusIds, setStatusIds] = useState([]);
   const [sourceIds, setSourceIds] = useState([]);
+  const [campaignIds, setCampaignIds] = useState([]);
 
   // debounced filters
   const dStatusIds = useDebounce(statusIds);
   const dSourceIds = useDebounce(sourceIds);
+  const dCampaignIds = useDebounce(campaignIds);
 
   // count / export
   const [countLoading, setCountLoading] = useState(false);
@@ -82,18 +85,30 @@ const LeadExport = () => {
     }
   }, []);
 
+  const fetchCampaigns = useCallback(async () => {
+    try {
+      const res = await API.private.getLeadCampaigns();
+      if (res.data?.code === "OK") {
+        setCampaigns(res.data.data.map((c) => ({ value: c.id, label: c.label })));
+      }
+    } catch {
+      Notification.error("Failed to load campaigns");
+    }
+  }, []);
+
   useEffect(() => {
     (async () => {
       setLoadingLookups(true);
-      await Promise.all([fetchStatuses(), fetchSources()]);
+      await Promise.all([fetchStatuses(), fetchSources(), fetchCampaigns()]);
       setLoadingLookups(false);
       didLoadLookups.current = true;
     })();
-  }, [fetchStatuses, fetchSources]);
+  }, [fetchStatuses, fetchSources, fetchCampaigns]);
 
-  const buildFilters = (ids1 = statusIds, ids2 = sourceIds) => ({
+  const buildFilters = (ids1 = statusIds, ids2 = sourceIds, ids3 = campaignIds) => ({
     status_ids: ids1.length ? ids1.join(",") : undefined,
     source_ids: ids2.length ? ids2.join(",") : undefined,
+    campaign_ids: ids3.length ? ids3.join(",") : undefined,
   });
 
   // Auto-count on filter changes (debounced)
@@ -106,7 +121,7 @@ const LeadExport = () => {
       setCountError(null);
       setExportCount(null);
       try {
-        const res = await API.private.getLeadsExportCount(buildFilters(dStatusIds, dSourceIds));
+        const res = await API.private.getLeadsExportCount(buildFilters(dStatusIds, dSourceIds, dCampaignIds));
         if (!cancelled) {
           if (res.data?.code === "OK") setExportCount(res.data.data.count ?? 0);
           else setCountError(res.data?.error || "Failed to get count");
@@ -121,7 +136,7 @@ const LeadExport = () => {
     return () => {
       cancelled = true;
     };
-  }, [dStatusIds, dSourceIds]);
+  }, [dStatusIds, dSourceIds, dCampaignIds]);
 
   const manualRefresh = async () => {
     setCountLoading(true);
@@ -165,6 +180,7 @@ const LeadExport = () => {
   const resetFilters = () => {
     setStatusIds([]);
     setSourceIds([]);
+    setCampaignIds([]);
     setExportCount(null);
   };
 
@@ -206,7 +222,7 @@ const LeadExport = () => {
                 </div>
               ) : (
                 <div className="p-6 space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <MultiSelect
                       label="Statuses"
                       placeholder="Select statuses"
@@ -220,6 +236,13 @@ const LeadExport = () => {
                       options={sources}
                       value={sourceIds}
                       onChange={(vals) => setSourceIds(vals)}
+                    />
+                    <MultiSelect
+                      label="Campaigns"
+                      placeholder="Select campaigns"
+                      options={campaigns}
+                      value={campaignIds}
+                      onChange={(vals) => setCampaignIds(vals)}
                     />
                   </div>
 
@@ -245,6 +268,18 @@ const LeadExport = () => {
                         sourceIds.map((id) => (
                           <Pill key={`sr-${id}`} onRemove={() => setSourceIds((s) => s.filter((x) => x !== id))}>
                             {labelFor(sources, id)}
+                          </Pill>
+                        ))
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs uppercase tracking-wide text-gray-500">Selected Campaigns:</span>
+                      {campaignIds.length === 0 ? (
+                        <span className="text-xs text-gray-500">None</span>
+                      ) : (
+                        campaignIds.map((id) => (
+                          <Pill key={`cp-${id}`} onRemove={() => setCampaignIds((s) => s.filter((x) => x !== id))}>
+                            {labelFor(campaigns, id)}
                           </Pill>
                         ))
                       )}
@@ -282,12 +317,12 @@ const LeadExport = () => {
                     loadingLookups
                       ? "Loading filters…"
                       : countLoading
-                      ? "Counting…"
-                      : exportCount === null
-                      ? "Waiting for count…"
-                      : exportCount === 0
-                      ? "No leads match filters"
-                      : `Export ${exportCount} leads`
+                        ? "Counting…"
+                        : exportCount === null
+                          ? "Waiting for count…"
+                          : exportCount === 0
+                            ? "No leads match filters"
+                            : `Export ${exportCount} leads`
                   }
                 >
                   {downloading ? "Preparing…" : exportCount !== null ? `Export ${exportCount} leads` : "Export"}
@@ -323,7 +358,7 @@ const LeadExport = () => {
               You’re about to export <span className="font-semibold">{exportCount ?? 0}</span> lead
               {exportCount === 1 ? "" : "s"} to CSV.
             </p>
-            {(statusIds.length > 0 || sourceIds.length > 0) && (
+            {(statusIds.length > 0 || sourceIds.length > 0 || campaignIds.length > 0) && (
               <div className="space-y-2">
                 <div className="text-sm text-gray-600">Applied filters:</div>
                 <div className="flex flex-wrap gap-2">
@@ -333,7 +368,10 @@ const LeadExport = () => {
                   {sourceIds.map((id) => (
                     <Pill key={`sr-c-${id}`}>Source: {labelFor(sources, id)}</Pill>
                   ))}
-                  {statusIds.length === 0 && sourceIds.length === 0 && (
+                  {campaignIds.map((id) => (
+                    <Pill key={`cp-c-${id}`}>Campaign: {labelFor(campaigns, id)}</Pill>
+                  ))}
+                  {statusIds.length === 0 && sourceIds.length === 0 && campaignIds.length === 0 && (
                     <span className="text-sm text-gray-600">None</span>
                   )}
                 </div>

@@ -125,6 +125,7 @@ const LeadDetailsModal = ({
   leadId,
   statuses = [],
   sources = [],
+  campaigns = [],
   orderedLeadIds = [],
   onLeadUpdated,
 }) => {
@@ -327,6 +328,7 @@ const LeadDetailsModal = ({
   const initials = initialsFromName(lead?.first_name, lead?.last_name);
   const fullName = [lead?.first_name, lead?.last_name].filter(Boolean).join(" ").trim() || "Lead Details";
   const assignedTo = latestAssignment?.assignee?.full_name || latestAssignment?.assignee?.email || "Unassigned";
+  const campaignLabel = lead?.Campaign?.label || lead?.Campaign?.value || lead?.campaign_id || "No Campaign";
 
   return (
     <>
@@ -349,6 +351,7 @@ const LeadDetailsModal = ({
                   <>
                     <Badge text={lead.LeadStatus?.label || "No Status"} color="blue" size="sm" />
                     <Badge text={lead.LeadSource?.label || "No Source"} color="purple" size="sm" />
+                    <Badge text={campaignLabel} color="gray" size="sm" />
                   </>
                 )}
               </div>
@@ -408,6 +411,7 @@ const LeadDetailsModal = ({
                       <div className="mt-2 flex flex-wrap gap-2">
                         <Badge text={lead.LeadStatus?.label || "No Status"} color="blue" size="sm" />
                         <Badge text={lead.LeadSource?.label || "No Source"} color="purple" size="sm" />
+                        <Badge text={campaignLabel} color="gray" size="sm" />
                       </div>
                     </div>
                   </div>
@@ -431,6 +435,7 @@ const LeadDetailsModal = ({
                   <DetailRow icon="mdi:email-outline" label="Email" value={lead.email} />
                   <DetailRow icon="mdi:phone-outline" label="Phone" value={lead.phone} />
                   <DetailRow icon="mdi:earth" label="Country" value={lead.country} />
+                  <DetailRow icon="mdi:bullhorn-outline" label="Campaign" value={campaignLabel} />
                   <DetailRow icon="mdi:account-tie-outline" label="Assigned To" value={assignedTo} />
                   <DetailRow icon="mdi:calendar-clock" label="Created" value={formatDateTime(lead.created_at)} />
                 </div>
@@ -634,6 +639,7 @@ const LeadDetailsModal = ({
         editingLead={lead}
         statuses={statuses}
         sources={sources}
+        campaigns={campaigns}
         loading={saving}
       />
 

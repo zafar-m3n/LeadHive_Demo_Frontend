@@ -101,7 +101,7 @@ const TeamFormModal = ({
           value={watch("members") || []}
           onChange={(ids) => setValue("members", ids)}
           options={memberOptions}
-          placeholder="Select Sales Reps"
+          placeholder="Select Team Members"
           error={errors.members?.message}
         />
 

@@ -48,6 +48,14 @@ const AdminDashboard = () => {
     }));
   }, [summary]);
 
+  const leadsByCampaignData = useMemo(() => {
+    if (!summary?.leadsByCampaign) return [];
+    return summary.leadsByCampaign.map((row) => ({
+      label: row["Campaign.label"] || row?.Campaign?.label || "Unknown",
+      count: Number(row.count || 0),
+    }));
+  }, [summary]);
+
   const leadsByStatusPie = useMemo(() => {
     if (!summary?.leadsByStatus) return [];
     return summary.leadsByStatus.map((row) => ({
@@ -73,19 +81,19 @@ const AdminDashboard = () => {
               <div className="rounded-xl border border-gray-200 p-4 bg-white">
                 <div className="text-sm text-gray-500">Total Leads</div>
                 <div className="mt-1 text-2xl font-semibold text-gray-900">
-                  {loading ? "—" : summary?.totalLeads ?? 0}
+                  {loading ? "—" : (summary?.totalLeads ?? 0)}
                 </div>
               </div>
               <div className="rounded-xl border border-gray-200 p-4 bg-white">
                 <div className="text-sm text-gray-500">New This Week</div>
                 <div className="mt-1 text-2xl font-semibold text-gray-900">
-                  {loading ? "—" : summary?.newThisWeek ?? 0}
+                  {loading ? "—" : (summary?.newThisWeek ?? 0)}
                 </div>
               </div>
               <div className="rounded-xl border border-gray-200 p-4 bg-white">
                 <div className="text-sm text-gray-500">Unassigned Leads</div>
                 <div className="mt-1 text-2xl font-semibold text-gray-900">
-                  {loading ? "—" : summary?.unassignedLeads ?? 0}
+                  {loading ? "—" : (summary?.unassignedLeads ?? 0)}
                 </div>
               </div>
             </div>
@@ -126,6 +134,21 @@ const AdminDashboard = () => {
                       <YAxis allowDecimals={false} />
                       <Tooltip />
                       <Bar dataKey="count" fill="#3B82F6" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </section>
+
+              <section className="rounded-xl border border-gray-200 p-5 bg-white">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Leads per Campaign</h2>
+                <div className="h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={leadsByCampaignData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="label" />
+                      <YAxis allowDecimals={false} />
+                      <Tooltip />
+                      <Bar dataKey="count" fill="#10B981" />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>

@@ -10,6 +10,7 @@ import LoginPage from "@/pages/auth/LoginPage";
 import SalesDashboard from "@/pages/dashboard/SalesDashboard";
 import AdminDashboard from "@/pages/dashboard/AdminDashboard";
 import ManagerDashboard from "@/pages/dashboard/ManagerDashboard";
+import RetentionDashboard from "@/pages/dashboard/RetentionDashboard";
 
 // Users
 import ManageUsers from "@/pages/users/ManageUsers";
@@ -24,6 +25,7 @@ import AdminLeads from "@/pages/leads/AdminLeads";
 import LeadsImport from "@/pages/leads/LeadsImport";
 import ManagerLeads from "@/pages/leads/ManagerLeads";
 import SalesLeads from "@/pages/leads/SalesLeads";
+import RetentionLeads from "@/pages/leads/RetentionLeads";
 import LeadExport from "@/pages/leadexport";
 
 // Reports
@@ -32,6 +34,7 @@ import AdminReports from "@/pages/reports/AdminReports";
 // Profile
 import ManagerProfile from "@/pages/profile/ManagerProfile";
 import SalesProfile from "@/pages/profile/SalesProfile";
+import RetentionProfile from "@/pages/profile/RetentionProfile";
 
 // Settings
 import AdminSettings from "@/pages/settings/AdminSettings";
@@ -47,9 +50,10 @@ import Notification from "@/components/ui/Notification";
 
 const protectedRoutes = [
   // Dashboards
-  { path: "/dashboard", element: SalesDashboard, roles: ["sales_rep"] },
+  { path: "/sales/dashboard", element: SalesDashboard, roles: ["sales_rep"] },
   { path: "/admin/dashboard", element: AdminDashboard, roles: ["admin"] },
   { path: "/manager/dashboard", element: ManagerDashboard, roles: ["manager"] },
+  { path: "/retention/dashboard", element: RetentionDashboard, roles: ["retention"] },
 
   // Users
   { path: "/admin/users", element: ManageUsers, roles: ["admin"] },
@@ -64,14 +68,16 @@ const protectedRoutes = [
   { path: "/admin/leads/import", element: LeadsImport, roles: ["admin"] },
   { path: "/admin/leads/export", element: LeadExport, roles: ["admin"] },
   { path: "/manager/leads", element: ManagerLeads, roles: ["manager"] },
-  { path: "/leads", element: SalesLeads, roles: ["sales_rep"] },
+  { path: "/sales/leads", element: SalesLeads, roles: ["sales_rep"] },
+  { path: "/retention/leads", element: RetentionLeads, roles: ["retention"] },
 
   // Reports
   { path: "/admin/reports", element: AdminReports, roles: ["admin"] },
 
   // Profile
   { path: "/manager/profile", element: ManagerProfile, roles: ["manager"] },
-  { path: "/profile", element: SalesProfile, roles: ["sales_rep"] },
+  { path: "/sales/profile", element: SalesProfile, roles: ["sales_rep"] },
+  { path: "/retention/profile", element: RetentionProfile, roles: ["retention"] },
 
   // Settings
   { path: "/admin/settings", element: AdminSettings, roles: ["admin"] },
@@ -101,7 +107,10 @@ function AppShell() {
 
     if (role === "admin") return "/admin/dashboard";
     if (role === "manager") return "/manager/dashboard";
-    return "/dashboard"; // default for sales_rep or fallback
+    if (role === "sales_rep") return "/sales/dashboard";
+    if (role === "retention") return "/retention/dashboard";
+
+    return "/login";
   };
 
   return (

@@ -30,6 +30,7 @@ const DEFAULT_FILTERS = {
   search: "",
   statusIds: [],
   sourceIds: [],
+  campaignIds: [],
   assigneeIds: [],
   orderBy: "",
   orderDir: "ASC",
@@ -45,6 +46,7 @@ const getInitialFilters = () => {
   return {
     statusIds: Array.isArray(stored.statusIds) ? stored.statusIds : DEFAULT_FILTERS.statusIds,
     sourceIds: Array.isArray(stored.sourceIds) ? stored.sourceIds : DEFAULT_FILTERS.sourceIds,
+    campaignIds: Array.isArray(stored.campaignIds) ? stored.campaignIds : DEFAULT_FILTERS.campaignIds,
     assigneeIds: Array.isArray(stored.assigneeIds) ? stored.assigneeIds : DEFAULT_FILTERS.assigneeIds,
     orderBy: stored.orderBy ?? DEFAULT_FILTERS.orderBy,
     orderDir: stored.orderDir ?? DEFAULT_FILTERS.orderDir,
@@ -67,6 +69,7 @@ const AdminLeads = () => {
   const [leads, setLeads] = useState([]);
   const [statuses, setStatuses] = useState([]);
   const [sources, setSources] = useState([]);
+  const [campaigns, setCampaigns] = useState([]);
   const [managers, setManagers] = useState([]);
   const [assigneeOptions, setAssigneeOptions] = useState([]);
 
@@ -90,6 +93,7 @@ const AdminLeads = () => {
 
   const [statusIds, setStatusIds] = useState(() => initial.statusIds);
   const [sourceIds, setSourceIds] = useState(() => initial.sourceIds);
+  const [campaignIds, setCampaignIds] = useState(() => initial.campaignIds);
   const [assigneeIds, setAssigneeIds] = useState(() => initial.assigneeIds);
   const [orderBy, setOrderBy] = useState(() => initial.orderBy);
   const [orderDir, setOrderDir] = useState(() => initial.orderDir);
@@ -125,6 +129,7 @@ const AdminLeads = () => {
         limit,
         status_ids: Array.isArray(statusIds) && statusIds.length ? statusIds.join(",") : undefined,
         source_ids: Array.isArray(sourceIds) && sourceIds.length ? sourceIds.join(",") : undefined,
+        campaign_ids: Array.isArray(campaignIds) && campaignIds.length ? campaignIds.join(",") : undefined,
         assignee_ids:
           isAdminOrManager && Array.isArray(assigneeIds) && assigneeIds.length ? assigneeIds.join(",") : undefined,
         orderBy: orderBy || undefined,
@@ -153,6 +158,7 @@ const AdminLeads = () => {
     limit,
     statusIds,
     sourceIds,
+    campaignIds,
     assigneeIds,
     isAdminOrManager,
     orderBy,
@@ -181,6 +187,17 @@ const AdminLeads = () => {
       }
     } catch {
       Notification.error("Failed to fetch lead sources");
+    }
+  }, []);
+
+  const fetchCampaigns = useCallback(async () => {
+    try {
+      const res = await API.private.getLeadCampaigns();
+      if (res.data?.code === "OK") {
+        setCampaigns(res.data.data.map((c) => ({ value: c.id, label: c.label })));
+      }
+    } catch {
+      Notification.error("Failed to fetch lead campaigns");
     }
   }, []);
 
@@ -217,9 +234,10 @@ const AdminLeads = () => {
   useEffect(() => {
     fetchStatuses();
     fetchSources();
+    fetchCampaigns();
     fetchAssignees();
     fetchBulkTargets();
-  }, [fetchStatuses, fetchSources, fetchAssignees, fetchBulkTargets]);
+  }, [fetchStatuses, fetchSources, fetchCampaigns, fetchAssignees, fetchBulkTargets]);
 
   useEffect(() => {
     fetchLeads();
@@ -229,6 +247,7 @@ const AdminLeads = () => {
     token.setPersistedLeadsFilters({
       statusIds,
       sourceIds,
+      campaignIds,
       assigneeIds,
       orderBy,
       orderDir,
@@ -237,7 +256,7 @@ const AdminLeads = () => {
       limit,
       page,
     });
-  }, [statusIds, sourceIds, assigneeIds, orderBy, orderDir, assignedFrom, assignedTo, limit, page]);
+  }, [statusIds, sourceIds, campaignIds, assigneeIds, orderBy, orderDir, assignedFrom, assignedTo, limit, page]);
 
   const handleSortClick = useCallback(
     (field) => {
@@ -388,6 +407,25 @@ const AdminLeads = () => {
     }
   };
 
+  const handleBulkCampaign = async ({ campaignId }) => {
+    if (!campaignId) {
+      Notification.error("Please choose a campaign.");
+      return;
+    }
+
+    try {
+      await API.private.bulkUpdateLeadCampaign({
+        lead_ids: selectedIds,
+        campaign_id: Number(campaignId),
+      });
+      Notification.success("Campaign updated for selected leads");
+      await fetchLeads();
+    } catch (err) {
+      Notification.error(err.response?.data?.error || "Bulk campaign update failed");
+      throw err;
+    }
+  };
+
   const handleBulkDelete = async () => {
     try {
       await API.private.bulkDeleteLeads(selectedIds);
@@ -465,6 +503,14 @@ const AdminLeads = () => {
       }
     }
 
+    if (Object.prototype.hasOwnProperty.call(partial, "campaignIds")) {
+      const next = Array.isArray(partial.campaignIds) ? partial.campaignIds : [];
+      if (!arraysEqualLoose(next, campaignIds)) {
+        setCampaignIds(next);
+        changed = true;
+      }
+    }
+
     if (Object.prototype.hasOwnProperty.call(partial, "assigneeIds")) {
       const next = Array.isArray(partial.assigneeIds) ? partial.assigneeIds : [];
       if (!arraysEqualLoose(next, assigneeIds)) {
@@ -499,6 +545,7 @@ const AdminLeads = () => {
   const resetAllFilters = () => {
     setStatusIds(DEFAULT_FILTERS.statusIds);
     setSourceIds(DEFAULT_FILTERS.sourceIds);
+    setCampaignIds(DEFAULT_FILTERS.campaignIds);
     setAssigneeIds(DEFAULT_FILTERS.assigneeIds);
     setOrderBy(DEFAULT_FILTERS.orderBy);
     setOrderDir(DEFAULT_FILTERS.orderDir);
@@ -511,6 +558,7 @@ const AdminLeads = () => {
     token.setPersistedLeadsFilters({
       statusIds: DEFAULT_FILTERS.statusIds,
       sourceIds: DEFAULT_FILTERS.sourceIds,
+      campaignIds: DEFAULT_FILTERS.campaignIds,
       assigneeIds: DEFAULT_FILTERS.assigneeIds,
       orderBy: DEFAULT_FILTERS.orderBy,
       orderDir: DEFAULT_FILTERS.orderDir,
@@ -603,6 +651,7 @@ const AdminLeads = () => {
         <LeadsFiltersToolbar
           statuses={statuses}
           sources={sources}
+          campaigns={campaigns}
           sortFields={sortFields}
           orderDirOptions={orderDirOptions}
           assigneeOptions={isAdminOrManager ? assigneeOptions : []}
@@ -611,6 +660,7 @@ const AdminLeads = () => {
             search,
             statusIds,
             sourceIds,
+            campaignIds,
             assigneeIds,
             orderBy,
             orderDir,
@@ -670,6 +720,7 @@ const AdminLeads = () => {
           editingLead={null}
           statuses={statuses}
           sources={sources}
+          campaigns={campaigns}
           loading={loading}
         />
 
@@ -696,9 +747,11 @@ const AdminLeads = () => {
           targetOptions={bulkTargetOptions}
           statusOptions={statuses}
           sourceOptions={sources}
+          campaignOptions={campaigns}
           onBulkAssign={handleBulkAssign}
           onBulkStatus={handleBulkStatus}
           onBulkSource={handleBulkSource}
+          onBulkCampaign={handleBulkCampaign}
           onBulkDelete={handleBulkDelete}
           canAssign={isAdminOrManager}
         />
@@ -712,6 +765,7 @@ const AdminLeads = () => {
           leadId={activeLeadId}
           statuses={statuses}
           sources={sources}
+          campaigns={campaigns}
           orderedLeadIds={idsOnCurrentPage}
           onLeadUpdated={handleDetailsModalRefresh}
         />

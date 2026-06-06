@@ -16,8 +16,18 @@ const schema = Yup.object().shape({
   email: Yup.string().nullable().email("Invalid email"),
 });
 
-const LeadFormModal = ({ isOpen, onClose, onSubmit, editingLead, statuses, sources, loading }) => {
+const LeadFormModal = ({ isOpen, onClose, onSubmit, editingLead, statuses, sources, campaigns = [], loading }) => {
   const countryOptions = useMemo(() => countryList().getData(), []);
+
+  const defaultValues = useMemo(
+    () => ({
+      ...(editingLead || {}),
+      status_id: editingLead?.status_id || editingLead?.LeadStatus?.id || "",
+      source_id: editingLead?.source_id || editingLead?.LeadSource?.id || "",
+      campaign_id: editingLead?.campaign_id || editingLead?.Campaign?.id || "",
+    }),
+    [editingLead],
+  );
 
   const {
     register,
@@ -28,17 +38,19 @@ const LeadFormModal = ({ isOpen, onClose, onSubmit, editingLead, statuses, sourc
     formState: { errors },
   } = useForm({
     resolver: yupResolver(schema),
-    defaultValues: { ...editingLead },
+    defaultValues,
   });
 
   useEffect(() => {
-    reset(editingLead || {});
-  }, [editingLead, reset]);
+    reset(defaultValues);
+  }, [defaultValues, reset]);
 
   const submitHandler = (data) => {
     onSubmit({
       ...data,
       phone: data.phone || null,
+      source_id: data.source_id || null,
+      campaign_id: data.campaign_id || null,
       notes: editingLead ? undefined : data.notes?.trim() || undefined,
     });
   };
@@ -85,7 +97,7 @@ const LeadFormModal = ({ isOpen, onClose, onSubmit, editingLead, statuses, sourc
 
         <div className="border-t border-gray-200 pt-4 mt-4">
           <h3 className="text-xs font-semibold text-gray-600 mb-2">Lead Details</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <Select
               label="Status"
               value={watch("status_id") || ""}
@@ -101,6 +113,14 @@ const LeadFormModal = ({ isOpen, onClose, onSubmit, editingLead, statuses, sourc
               onChange={(val) => setValue("source_id", val)}
               options={sources}
               placeholder="Select Source"
+            />
+
+            <Select
+              label="Campaign"
+              value={watch("campaign_id") || ""}
+              onChange={(val) => setValue("campaign_id", val)}
+              options={campaigns}
+              placeholder="Select Campaign"
             />
           </div>
         </div>

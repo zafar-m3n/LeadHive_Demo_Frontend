@@ -4,23 +4,6 @@ import Select from "@/components/form/Select";
 import AccentButton from "@/components/ui/AccentButton";
 import GrayButton from "@/components/ui/GrayButton";
 
-/**
- * BulkActionsModal
- *
- * Props:
- * - isOpen: boolean
- * - onClose: function
- * - selectedCount: number
- * - selectedIds: number[] | string[]
- * - targetOptions: [{ value, label }]                 // assignee options
- * - statusOptions: [{ value, label }]                 // statuses (id->value)
- * - sourceOptions: [{ value, label }]                 // sources (id->value)
- * - onBulkAssign: async ({ assigneeId, overwrite, statusId? }) => void
- * - onBulkStatus: async ({ statusId }) => void
- * - onBulkSource: async ({ sourceId }) => void
- * - onBulkDelete: async () => void
- * - canAssign: boolean
- */
 const BulkActionsModal = ({
   isOpen,
   onClose,
@@ -29,49 +12,48 @@ const BulkActionsModal = ({
   targetOptions = [],
   statusOptions = [],
   sourceOptions = [],
+  campaignOptions = [],
   onBulkAssign,
   onBulkStatus,
   onBulkSource,
+  onBulkCampaign,
   onBulkDelete,
   canAssign = true,
 }) => {
   const availableActions = useMemo(() => {
     const list = [];
     if (canAssign) list.push("assign");
-    list.push("status", "source", "delete");
+    list.push("status", "source", "campaign", "delete");
     return list;
   }, [canAssign]);
 
-  // Active tab/action (null = render nothing)
   const [activeAction, setActiveAction] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // Assign local state
   const [assigneeId, setAssigneeId] = useState("");
   const [overwrite, setOverwrite] = useState(false);
-  const [assignStatusId, setAssignStatusId] = useState(""); // OPTIONAL status with assign
+  const [assignStatusId, setAssignStatusId] = useState("");
 
-  // Status local state
   const [statusId, setStatusId] = useState("");
-
-  // Source local state
   const [sourceId, setSourceId] = useState("");
+  const [campaignId, setCampaignId] = useState("");
 
-  // Reset on open
   useEffect(() => {
     if (isOpen) {
-      setActiveAction(null); // render nothing by default
+      setActiveAction(null);
       setAssigneeId("");
       setOverwrite(false);
       setAssignStatusId("");
       setStatusId("");
       setSourceId("");
+      setCampaignId("");
       setSubmitting(false);
     }
   }, [isOpen]);
 
   const ActionButton = ({ id, label }) => {
     const isActive = activeAction === id;
+
     return (
       <button
         type="button"
@@ -91,12 +73,12 @@ const BulkActionsModal = ({
       alert("Please choose an assignee.");
       return;
     }
+
     try {
       setSubmitting(true);
       await onBulkAssign({
         assigneeId,
         overwrite,
-        // only pass when chosen
         ...(assignStatusId ? { statusId: assignStatusId } : {}),
       });
       onClose();
@@ -110,6 +92,7 @@ const BulkActionsModal = ({
       alert("Please choose a status.");
       return;
     }
+
     try {
       setSubmitting(true);
       await onBulkStatus({ statusId });
@@ -124,9 +107,25 @@ const BulkActionsModal = ({
       alert("Please choose a source.");
       return;
     }
+
     try {
       setSubmitting(true);
       await onBulkSource({ sourceId });
+      onClose();
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleCampaign = async () => {
+    if (!campaignId) {
+      alert("Please choose a campaign.");
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      await onBulkCampaign({ campaignId });
       onClose();
     } finally {
       setSubmitting(false);
@@ -152,18 +151,16 @@ const BulkActionsModal = ({
       closeOnOverlayClick={!submitting}
       disableEscapeClose={submitting}
     >
-      {/* In-modal action buttons */}
       <div className="flex justify-center items-center gap-2 mb-5">
         {canAssign && <ActionButton id="assign" label="Assign Selected" />}
         <ActionButton id="status" label="Update Status" />
         <ActionButton id="source" label="Update Source" />
+        <ActionButton id="campaign" label="Update Campaign" />
         <ActionButton id="delete" label="Delete Selected" />
       </div>
 
-      {/* Nothing by default */}
       {!activeAction && <div className="text-sm text-gray-500">Choose an action above to continue.</div>}
 
-      {/* Assign panel (with optional status) */}
       {activeAction === "assign" && canAssign && (
         <div className="space-y-4">
           <p className="text-sm text-gray-600">
@@ -212,7 +209,6 @@ const BulkActionsModal = ({
         </div>
       )}
 
-      {/* Status panel */}
       {activeAction === "status" && (
         <div className="space-y-4">
           <p className="text-sm text-gray-600">
@@ -243,7 +239,6 @@ const BulkActionsModal = ({
         </div>
       )}
 
-      {/* Source panel */}
       {activeAction === "source" && (
         <div className="space-y-4">
           <p className="text-sm text-gray-600">
@@ -274,13 +269,43 @@ const BulkActionsModal = ({
         </div>
       )}
 
-      {/* Delete panel — styling matches your existing pattern */}
+      {activeAction === "campaign" && (
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600">
+            Update the campaign for <span className="font-semibold">{selectedCount}</span> selected lead
+            {selectedCount === 1 ? "" : "s"}.
+          </p>
+
+          <Select
+            label="Campaign"
+            value={campaignId}
+            onChange={(val) => setCampaignId(val)}
+            options={campaignOptions}
+            placeholder="Choose campaign…"
+          />
+
+          <div className="flex justify-end gap-3 pt-2">
+            <div className="w-fit">
+              <GrayButton text="Cancel" onClick={onClose} disabled={submitting} />
+            </div>
+            <div className="w-fit">
+              <AccentButton
+                text={submitting ? "Updating..." : "Update Campaign"}
+                onClick={handleCampaign}
+                disabled={submitting}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       {activeAction === "delete" && (
         <div className="space-y-4">
           <div className="rounded-md bg-red-50 border border-red-200 p-3 text-sm text-red-700">
             This will <strong>permanently delete</strong> {selectedCount} lead
             {selectedCount === 1 ? "" : "s"}. This action cannot be undone.
           </div>
+
           <div className="flex justify-end gap-3 pt-2">
             <button
               onClick={onClose}

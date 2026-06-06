@@ -101,6 +101,7 @@ const DatePopover = ({ label, value, onChangeISO, minDate, maxDate, clampMinTo, 
 const LeadsFiltersToolbar = ({
   statuses = [],
   sources = [],
+  campaigns = [],
   sortFields = [],
   orderDirOptions = [],
   assigneeOptions = [],
@@ -109,6 +110,7 @@ const LeadsFiltersToolbar = ({
     search: "",
     statusIds: [],
     sourceIds: [],
+    campaignIds: [],
     assigneeIds: [],
     orderBy: "",
     orderDir: "ASC",
@@ -125,6 +127,7 @@ const LeadsFiltersToolbar = ({
     search,
     statusIds = [],
     sourceIds = [],
+    campaignIds = [],
     assigneeIds = [],
     orderBy,
     orderDir,
@@ -137,6 +140,7 @@ const LeadsFiltersToolbar = ({
 
   const MAX_STATUS_CHIPS = 4;
   const MAX_SOURCE_CHIPS = 4;
+  const MAX_CAMPAIGN_CHIPS = 4;
   const MAX_ASSIGNEE_CHIPS = 4;
 
   const chips = useMemo(() => {
@@ -174,6 +178,22 @@ const LeadsFiltersToolbar = ({
       }
     }
 
+    if (Array.isArray(campaignIds) && campaignIds.length) {
+      if (campaignIds.length <= MAX_CAMPAIGN_CHIPS) {
+        campaignIds.forEach((cid) => {
+          items.push({
+            key: `campaign:${cid}`,
+            label: `Campaign: ${getLabel(campaigns, cid) || cid}`,
+          });
+        });
+      } else {
+        items.push({
+          key: "campaigns:all",
+          label: `Campaigns: ${campaignIds.length} selected`,
+        });
+      }
+    }
+
     if (showAssignee && Array.isArray(assigneeIds) && assigneeIds.length) {
       if (assigneeIds.length <= MAX_ASSIGNEE_CHIPS) {
         assigneeIds.forEach((aid) => {
@@ -206,11 +226,13 @@ const LeadsFiltersToolbar = ({
     search,
     statusIds,
     sourceIds,
+    campaignIds,
     assigneeIds,
     orderBy,
     orderDir,
     statuses,
     sources,
+    campaigns,
     assigneeOptions,
     sortFields,
     showAssignee,
@@ -242,6 +264,18 @@ const LeadsFiltersToolbar = ({
 
     if (key === "sources:all") {
       onChange({ sourceIds: [] });
+      return;
+    }
+
+    if (key.startsWith("campaign:")) {
+      const id = key.split(":")[1];
+      const next = (campaignIds || []).filter((c) => String(c) !== String(id));
+      onChange({ campaignIds: next });
+      return;
+    }
+
+    if (key === "campaigns:all") {
+      onChange({ campaignIds: [] });
       return;
     }
 
@@ -323,6 +357,14 @@ const LeadsFiltersToolbar = ({
           onChange={(vals) => onChange({ sourceIds: vals })}
           options={sources}
           placeholder="All sources"
+        />
+
+        <MultiSelect
+          label="Campaigns"
+          value={Array.isArray(campaignIds) ? campaignIds : []}
+          onChange={(vals) => onChange({ campaignIds: vals })}
+          options={campaigns}
+          placeholder="All campaigns"
         />
 
         {showAssignee && (

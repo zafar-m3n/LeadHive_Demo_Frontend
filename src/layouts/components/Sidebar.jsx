@@ -36,6 +36,7 @@ const Sidebar = ({ menuOpen, setMenuOpen, onExpandChange }) => {
     { label: "Settings", icon: "mdi:cog-outline", path: "/admin/settings" },
     { label: "Logout", icon: "mdi:logout", action: "logout" },
   ];
+
   const managerItems = [
     { label: "Dashboard", icon: "mdi:view-dashboard-outline", path: "/manager/dashboard" },
     { label: "Team Leads", icon: "mdi:account-group-outline", path: "/manager/leads" },
@@ -44,10 +45,18 @@ const Sidebar = ({ menuOpen, setMenuOpen, onExpandChange }) => {
     { label: "Profile", icon: "mdi:account-circle-outline", path: "/manager/profile" },
     { label: "Logout", icon: "mdi:logout", action: "logout" },
   ];
+
   const salesRepItems = [
-    { label: "Dashboard", icon: "mdi:view-dashboard-outline", path: "/dashboard" },
-    { label: "My Leads", icon: "mdi:account-tie-outline", path: "/leads" },
-    { label: "Profile", icon: "mdi:account-circle-outline", path: "/profile" },
+    { label: "Dashboard", icon: "mdi:view-dashboard-outline", path: "/sales/dashboard" },
+    { label: "My Leads", icon: "mdi:account-tie-outline", path: "/sales/leads" },
+    { label: "Profile", icon: "mdi:account-circle-outline", path: "/sales/profile" },
+    { label: "Logout", icon: "mdi:logout", action: "logout" },
+  ];
+
+  const retentionItems = [
+    { label: "Dashboard", icon: "mdi:view-dashboard-outline", path: "/retention/dashboard" },
+    { label: "My Leads", icon: "mdi:account-tie-outline", path: "/retention/leads" },
+    { label: "Profile", icon: "mdi:account-circle-outline", path: "/retention/profile" },
     { label: "Logout", icon: "mdi:logout", action: "logout" },
   ];
 
@@ -55,6 +64,7 @@ const Sidebar = ({ menuOpen, setMenuOpen, onExpandChange }) => {
   if (role === "admin") menuItems = adminItems;
   else if (role === "manager") menuItems = managerItems;
   else if (role === "sales_rep") menuItems = salesRepItems;
+  else if (role === "retention") menuItems = retentionItems;
   else menuItems = [{ label: "Logout", icon: "mdi:logout", action: "logout" }];
 
   return (

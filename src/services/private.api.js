@@ -5,14 +5,12 @@ import instance from "@/lib/axios";
 /* ========================== */
 
 const registerUser = async (data) => {
-  // { full_name, email, password, role_id, phone?, avatar_url? }
   return await instance.apiClient.post("/api/v1/auth/register", data, {
     headers: instance.publicHeaders(),
   });
 };
 
 const loginUser = async (data) => {
-  // { email, password }
   return await instance.apiClient.post("/api/v1/auth/login", data, {
     headers: instance.publicHeaders(),
   });
@@ -25,18 +23,16 @@ const getProfile = async () => {
 };
 
 const updatePassword = async (data) => {
-  // { current_password, new_password }
   return await instance.apiClient.patch("/api/v1/auth/password/update", data, {
     headers: instance.defaultHeaders(),
   });
 };
 
 /* ========================== */
-/* User Functions (Admin only)*/
+/* User Functions             */
 /* ========================== */
 
 const createUser = async (data) => {
-  // { full_name, email, password, role_id, phone?, avatar_url? }
   return await instance.apiClient.post("/api/v1/users", data, {
     headers: instance.defaultHeaders(),
   });
@@ -45,7 +41,7 @@ const createUser = async (data) => {
 const getUsers = async (params = {}) => {
   return await instance.apiClient.get("/api/v1/users", {
     headers: instance.defaultHeaders(),
-    params, // <-- forward page/limit
+    params,
   });
 };
 
@@ -56,14 +52,12 @@ const getUserById = async (id) => {
 };
 
 const updateUser = async (id, data) => {
-  // { full_name?, email?, phone?, avatar_url?, role_id?, is_active? }
   return await instance.apiClient.put(`/api/v1/users/${id}`, data, {
     headers: instance.defaultHeaders(),
   });
 };
 
 const deleteUser = async (id) => {
-  // Soft delete (set is_active = false)
   return await instance.apiClient.delete(`/api/v1/users/${id}`, {
     headers: instance.defaultHeaders(),
   });
@@ -91,6 +85,12 @@ const getLeadSources = async () => {
   });
 };
 
+const getLeadCampaigns = async () => {
+  return await instance.apiClient.get("/api/v1/supports/leads/campaigns", {
+    headers: instance.defaultHeaders(),
+  });
+};
+
 const getManagers = async () => {
   return await instance.apiClient.get("/api/v1/supports/users/managers", {
     headers: instance.defaultHeaders(),
@@ -108,6 +108,7 @@ const getUnassignedSalesReps = async () => {
     headers: instance.defaultHeaders(),
   });
 };
+
 const getUnassignedManagers = async () => {
   return await instance.apiClient.get("/api/v1/supports/users/managers/unassigned", {
     headers: instance.defaultHeaders(),
@@ -126,10 +127,28 @@ const getAssignableUsersForManager = async () => {
   });
 };
 
-// Supporting Data Functions (add this)
 const getMyManager = async () => {
   return await instance.apiClient.get("/api/v1/supports/users/manager", {
     headers: instance.defaultHeaders(),
+  });
+};
+
+const getManagersForTeam = async (teamId) => {
+  return await instance.apiClient.get(`/api/v1/supports/teams/${teamId}/managers`, {
+    headers: instance.defaultHeaders(),
+  });
+};
+
+const assignManagerToTeam = async (id, data) => {
+  return await instance.apiClient.post(`/api/v1/supports/teams/${id}/managers`, data, {
+    headers: instance.defaultHeaders(),
+  });
+};
+
+const removeManagerFromTeam = async (id, userId, data = {}) => {
+  return await instance.apiClient.delete(`/api/v1/supports/teams/${id}/managers/${userId}`, {
+    headers: instance.defaultHeaders(),
+    data,
   });
 };
 
@@ -144,7 +163,6 @@ const getAssignees = async () => {
 /* ========================== */
 
 const createTeam = async (data) => {
-  // { name, manager_id, members?: [user_ids] }
   return await instance.apiClient.post("/api/v1/teams", data, {
     headers: instance.defaultHeaders(),
   });
@@ -163,7 +181,6 @@ const getTeamById = async (id) => {
 };
 
 const updateTeam = async (id, data) => {
-  // { name?, manager_id?, members?: [user_ids] }
   return await instance.apiClient.put(`/api/v1/teams/${id}`, data, {
     headers: instance.defaultHeaders(),
   });
@@ -176,7 +193,6 @@ const deleteTeam = async (id) => {
 };
 
 const addMemberToTeam = async (id, data) => {
-  // data: { user_id }
   return await instance.apiClient.post(`/api/v1/teams/${id}/members`, data, {
     headers: instance.defaultHeaders(),
   });
@@ -188,19 +204,29 @@ const removeMemberFromTeam = async (id, userId) => {
   });
 };
 
+const getMyTeam = async () => {
+  return await instance.apiClient.get("/api/v1/teams/my", {
+    headers: instance.defaultHeaders(),
+  });
+};
+
+const removeMemberFromMyTeam = async (userId) => {
+  return await instance.apiClient.delete(`/api/v1/teams/my/members/${userId}`, {
+    headers: instance.defaultHeaders(),
+  });
+};
+
 /* ========================== */
 /* Lead Functions             */
 /* ========================== */
 
 const createLead = async (data) => {
-  // { first_name?, last_name?, company?, email?, phone?, country?, status_id, source_id?, value_decimal?, notes? }
   return await instance.apiClient.post("/api/v1/leads", data, {
     headers: instance.defaultHeaders(),
   });
 };
 
 const getLeads = async (params = {}) => {
-  // params: { status_id?, source_id?, orderBy?, orderDir?, search?, page?, limit? }
   return await instance.apiClient.get("/api/v1/leads", {
     headers: instance.defaultHeaders(),
     params,
@@ -214,7 +240,6 @@ const getLeadById = async (id) => {
 };
 
 const updateLead = async (id, data) => {
-  // { first_name?, last_name?, company?, email?, phone?, country?, status_id?, source_id?, value_decimal?, notes? }
   return await instance.apiClient.put(`/api/v1/leads/${id}`, data, {
     headers: instance.defaultHeaders(),
   });
@@ -227,7 +252,6 @@ const deleteLead = async (id) => {
 };
 
 const assignLead = async (id, data) => {
-  // { assignee_id }
   return await instance.apiClient.post(`/api/v1/leads/${id}/assign`, data, {
     headers: instance.defaultHeaders(),
   });
@@ -245,7 +269,6 @@ const updateLeadNote = async (leadId, noteId, data) => {
   });
 };
 
-// Delete a specific note for a lead (Admin & Manager only)
 const deleteLeadNote = async (leadId, noteId) => {
   return await instance.apiClient.delete(`/api/v1/leads/${leadId}/notes/${noteId}`, {
     headers: instance.defaultHeaders(),
@@ -263,7 +286,6 @@ const getLeadTemplateSchema = async () => {
 };
 
 const importLeads = async (data) => {
-  // { leads: [ { first_name, last_name, company, email, phone, country, status, source, value_decimal, notes } ] }
   return await instance.apiClient.post("/api/v1/leads/upload/import", data, {
     headers: instance.defaultHeaders(),
   });
@@ -274,7 +296,6 @@ const importLeads = async (data) => {
 /* ========================== */
 
 const getAdminDashboardSummary = async (params = {}) => {
-  // params: { recentLimit?: number }
   return await instance.apiClient.get("/api/v1/dashboard/summary/admin", {
     headers: instance.defaultHeaders(),
     params,
@@ -282,7 +303,6 @@ const getAdminDashboardSummary = async (params = {}) => {
 };
 
 const getManagerDashboardSummary = async (params = {}) => {
-  // params: { recentLimit?: number }
   return await instance.apiClient.get("/api/v1/dashboard/summary/manager", {
     headers: instance.defaultHeaders(),
     params,
@@ -290,8 +310,14 @@ const getManagerDashboardSummary = async (params = {}) => {
 };
 
 const getSalesRepDashboardSummary = async (params = {}) => {
-  // params: { recentLimit?: number }
   return await instance.apiClient.get("/api/v1/dashboard/summary/sales_rep", {
+    headers: instance.defaultHeaders(),
+    params,
+  });
+};
+
+const getRetentionDashboardSummary = async (params = {}) => {
+  return await instance.apiClient.get("/api/v1/dashboard/summary/retention", {
     headers: instance.defaultHeaders(),
     params,
   });
@@ -303,22 +329,8 @@ const getMyDashboardAssignments = async () => {
   });
 };
 
-// Manager: get own team (with members)
-const getMyTeam = async () => {
-  return await instance.apiClient.get("/api/v1/teams/my", {
-    headers: instance.defaultHeaders(),
-  });
-};
-
-// Manager: remove a member from own team
-const removeMemberFromMyTeam = async (userId) => {
-  return await instance.apiClient.delete(`/api/v1/teams/my/members/${userId}`, {
-    headers: instance.defaultHeaders(),
-  });
-};
-
 /* ========================== */
-/* Bulk Lead Assignment       */
+/* Bulk Lead Functions        */
 /* ========================== */
 
 const getBulkAssignableTargets = async () => {
@@ -327,24 +339,22 @@ const getBulkAssignableTargets = async () => {
   });
 };
 
-// Bulk assign leads (Admin & Manager) — now supports optional status change
 const bulkAssignLeads = async ({ lead_ids = [], assignee_id, overwrite = false, status_id = null }) => {
   const payload = { lead_ids, assignee_id, overwrite };
   if (status_id !== undefined && status_id !== null) payload.status_id = status_id;
 
-  return await instance.apiClient.post("/api/v1/bulk/assign", payload, { headers: instance.defaultHeaders() });
+  return await instance.apiClient.post("/api/v1/bulk/assign", payload, {
+    headers: instance.defaultHeaders(),
+  });
 };
 
-// Bulk delete leads (Admin & Manager)
 const bulkDeleteLeads = async (lead_ids = []) => {
-  // Body must go in the `data` field for DELETE with axios
   return await instance.apiClient.delete("/api/v1/bulk/delete", {
     headers: instance.defaultHeaders(),
     data: { lead_ids },
   });
 };
 
-// Bulk update lead status (Admin & Manager)
 const bulkUpdateLeadStatus = async ({ lead_ids = [], status_id }) => {
   return await instance.apiClient.post(
     "/api/v1/bulk/status",
@@ -353,7 +363,6 @@ const bulkUpdateLeadStatus = async ({ lead_ids = [], status_id }) => {
   );
 };
 
-// Bulk update lead source (Admin & Manager)
 const bulkUpdateLeadSource = async ({ lead_ids = [], source_id }) => {
   return await instance.apiClient.post(
     "/api/v1/bulk/source",
@@ -362,15 +371,19 @@ const bulkUpdateLeadSource = async ({ lead_ids = [], source_id }) => {
   );
 };
 
-/* ========================== */
-/* Lead Sources & Statuses    */
-/* (Admin CRUD)               */
-/* ========================== */
+const bulkUpdateLeadCampaign = async ({ lead_ids = [], campaign_id }) => {
+  return await instance.apiClient.post(
+    "/api/v1/bulk/campaign",
+    { lead_ids, campaign_id },
+    { headers: instance.defaultHeaders() },
+  );
+};
 
-// ----- Lead Sources (Admin) -----
+/* ========================== */
+/* Admin Lead Sources CRUD    */
+/* ========================== */
 
 export const listAdminLeadSources = async (params = {}) => {
-  // params: { q?, page?, pageSize?, sortBy?, sortDir? }
   return await instance.apiClient.get("/api/v1/lead/lead/sources", {
     headers: instance.defaultHeaders(),
     params,
@@ -401,10 +414,11 @@ export const deleteAdminLeadSource = async (id) => {
   });
 };
 
-// ----- Lead Statuses (Admin) -----
+/* ========================== */
+/* Admin Lead Statuses CRUD   */
+/* ========================== */
 
 export const listAdminLeadStatuses = async (params = {}) => {
-  // params: { q?, page?, pageSize?, sortBy?, sortDir? }
   return await instance.apiClient.get("/api/v1/lead/lead/statuses", {
     headers: instance.defaultHeaders(),
     params,
@@ -436,7 +450,46 @@ export const deleteAdminLeadStatus = async (id) => {
 };
 
 /* ========================== */
-/* Leads Export (Count + CSV) */
+/* Admin Campaigns CRUD       */
+/* ========================== */
+
+export const listAdminCampaigns = async (params = {}) => {
+  return await instance.apiClient.get("/api/v1/lead/lead/campaigns", {
+    headers: instance.defaultHeaders(),
+    params,
+  });
+};
+
+export const getAdminCampaignById = async (id) => {
+  return await instance.apiClient.get(`/api/v1/lead/lead/campaigns/${id}`, {
+    headers: instance.defaultHeaders(),
+  });
+};
+
+export const createAdminCampaign = async ({ label }) => {
+  return await instance.apiClient.post(
+    "/api/v1/lead/lead/campaigns",
+    { label },
+    { headers: instance.defaultHeaders() },
+  );
+};
+
+export const updateAdminCampaign = async (id, { label }) => {
+  return await instance.apiClient.put(
+    `/api/v1/lead/lead/campaigns/${id}`,
+    { label },
+    { headers: instance.defaultHeaders() },
+  );
+};
+
+export const deleteAdminCampaign = async (id) => {
+  return await instance.apiClient.delete(`/api/v1/lead/lead/campaigns/${id}`, {
+    headers: instance.defaultHeaders(),
+  });
+};
+
+/* ========================== */
+/* Leads Export Functions     */
 /* ========================== */
 
 const getLeadsExportCount = async (filters = {}) => {
@@ -458,18 +511,13 @@ const downloadLeadsExport = async (filters = {}) => {
 /* ========================== */
 /* Reports Functions          */
 /* ========================== */
-/* ========================== */
-/* Reports Functions          */
-/* ========================== */
 
-// Load agents available for the reports filter dropdown
 const getReportAgents = async () => {
   return await instance.apiClient.get("/api/v1/reports/agents", {
     headers: instance.defaultHeaders(),
   });
 };
 
-// Load reports based on selected report type + filters
 const getReports = async (params = {}) => {
   return await instance.apiClient.get("/api/v1/reports", {
     headers: instance.defaultHeaders(),
@@ -482,23 +530,21 @@ const getReports = async (params = {}) => {
 /* ========================== */
 
 const privateAPI = {
-  // Auth
   registerUser,
   loginUser,
   getProfile,
   updatePassword,
 
-  // Users (admin only)
   createUser,
   getUsers,
   getUserById,
   updateUser,
   deleteUser,
 
-  // Supporting Data
   getRoles,
   getLeadStatuses,
   getLeadSources,
+  getLeadCampaigns,
   getManagers,
   getTeamMembers,
   getUnassignedSalesReps,
@@ -506,9 +552,11 @@ const privateAPI = {
   getManagersAndAdmins,
   getAssignableUsersForManager,
   getMyManager,
+  getManagersForTeam,
+  assignManagerToTeam,
+  removeManagerFromTeam,
   getAssignees,
 
-  // Teams
   createTeam,
   getTeams,
   getTeamById,
@@ -516,8 +564,9 @@ const privateAPI = {
   deleteTeam,
   addMemberToTeam,
   removeMemberFromTeam,
+  getMyTeam,
+  removeMemberFromMyTeam,
 
-  // Leads
   createLead,
   getLeads,
   getLeadById,
@@ -528,45 +577,43 @@ const privateAPI = {
   updateLeadNote,
   deleteLeadNote,
 
-  // Leads Upload
   getLeadTemplateSchema,
   importLeads,
 
-  // Dashboard
   getAdminDashboardSummary,
   getManagerDashboardSummary,
   getSalesRepDashboardSummary,
+  getRetentionDashboardSummary,
   getMyDashboardAssignments,
 
-  // Manager specific
-  getMyTeam,
-  removeMemberFromMyTeam,
-
-  // Bulk Lead Assignment
   getBulkAssignableTargets,
   bulkAssignLeads,
   bulkDeleteLeads,
   bulkUpdateLeadStatus,
   bulkUpdateLeadSource,
+  bulkUpdateLeadCampaign,
 
-  // Admin: Lead Sources & Statuses
   listAdminLeadSources,
   getAdminLeadSourceById,
   createAdminLeadSource,
   updateAdminLeadSource,
   deleteAdminLeadSource,
+
   listAdminLeadStatuses,
   getAdminLeadStatusById,
   createAdminLeadStatus,
   updateAdminLeadStatus,
   deleteAdminLeadStatus,
 
-  // Leads Export
+  listAdminCampaigns,
+  getAdminCampaignById,
+  createAdminCampaign,
+  updateAdminCampaign,
+  deleteAdminCampaign,
+
   getLeadsExportCount,
   downloadLeadsExport,
 
-  // Reports
-  // Reports
   getReportAgents,
   getReports,
 };

@@ -7,7 +7,6 @@ import Spinner from "@/components/ui/Spinner";
 import Heading from "@/components/ui/Heading";
 import LeadsTable from "./components/LeadsTable";
 import LeadsFiltersToolbar from "./components/LeadsFiltersToolbar";
-import ConfirmAssignModal from "./components/ConfirmAssignModal";
 import IconComponent from "@/components/ui/Icon";
 import token from "@/lib/utilities";
 import SalesLeadDetailsModal from "./components/SalesLeadDetailsModal";
@@ -103,13 +102,12 @@ const ManagersList = ({ managers = [] }) => {
   );
 };
 
-const SalesLeads = () => {
+const RetentionLeads = () => {
   const [leads, setLeads] = useState([]);
   const [statuses, setStatuses] = useState([]);
   const [sources, setSources] = useState([]);
   const [campaigns, setCampaigns] = useState([]);
   const [myManagers, setMyManagers] = useState([]);
-  const [me, setMe] = useState(null);
 
   const [loading, setLoading] = useState(false);
 
@@ -128,10 +126,6 @@ const SalesLeads = () => {
   const [assignedFrom, setAssignedFrom] = useState(() => initial.assignedFrom);
   const [assignedTo, setAssignedTo] = useState(() => initial.assignedTo);
   const debouncedSearch = useDebouncedValue(search, 300);
-
-  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
-  const [leadToAssign, setLeadToAssign] = useState(null);
-  const [selectedAssignee, setSelectedAssignee] = useState(null);
 
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [activeLeadId, setActiveLeadId] = useState(null);
@@ -216,22 +210,12 @@ const SalesLeads = () => {
     }
   }, []);
 
-  const fetchProfile = useCallback(async () => {
-    try {
-      const res = await API.private.getProfile?.();
-      if (res?.data?.code === "OK") {
-        setMe(res.data.data);
-      }
-    } catch {}
-  }, []);
-
   useEffect(() => {
     fetchStatuses();
     fetchSources();
     fetchCampaigns();
     fetchMyManagers();
-    fetchProfile();
-  }, [fetchStatuses, fetchSources, fetchCampaigns, fetchMyManagers, fetchProfile]);
+  }, [fetchStatuses, fetchSources, fetchCampaigns, fetchMyManagers]);
 
   useEffect(() => {
     fetchLeads();
@@ -268,33 +252,6 @@ const SalesLeads = () => {
   const handleOpenDetails = (lead) => {
     setActiveLeadId(lead.id);
     setDetailsModalOpen(true);
-  };
-
-  const handleAssignOptionClick = (lead, managerChoice) => {
-    if (!myManagers.length) {
-      Notification.error("You are not assigned to a manager.");
-      return;
-    }
-
-    setLeadToAssign(lead);
-    setSelectedAssignee(managerChoice || myManagers[0]);
-    setIsAssignModalOpen(true);
-  };
-
-  const handleAssign = async () => {
-    if (!leadToAssign || !selectedAssignee) return;
-
-    try {
-      await API.private.assignLead(leadToAssign.id, { assignee_id: selectedAssignee.id });
-      Notification.success("Lead assigned to your manager");
-      await fetchLeads();
-    } catch (err) {
-      Notification.error(err.response?.data?.error || "Failed to assign lead");
-    } finally {
-      setIsAssignModalOpen(false);
-      setLeadToAssign(null);
-      setSelectedAssignee(null);
-    }
   };
 
   const handleInlineStatusUpdate = async (lead, statusOption) => {
@@ -455,7 +412,7 @@ const SalesLeads = () => {
     <DefaultLayout>
       <div className="space-y-6">
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-          <Heading>My Leads</Heading>
+          <Heading>My Retention Leads</Heading>
 
           <div className="w-full md:w-auto md:min-w-[360px]">
             <ManagersList managers={myManagers} />
@@ -495,9 +452,8 @@ const SalesLeads = () => {
                 onEdit={handleOpenDetails}
                 onDelete={null}
                 managers={myManagers}
-                onAssignOptionClick={handleAssignOptionClick}
+                onAssignOptionClick={null}
                 mode="sales"
-                selfId={me?.id || null}
                 statuses={statuses}
                 onStatusUpdate={handleInlineStatusUpdate}
                 orderBy={orderBy}
@@ -515,14 +471,6 @@ const SalesLeads = () => {
           )}
         </div>
 
-        <ConfirmAssignModal
-          isOpen={isAssignModalOpen}
-          lead={leadToAssign}
-          assignee={selectedAssignee}
-          onCancel={() => setIsAssignModalOpen(false)}
-          onConfirm={handleAssign}
-        />
-
         <SalesLeadDetailsModal
           isOpen={detailsModalOpen}
           onClose={() => {
@@ -539,4 +487,4 @@ const SalesLeads = () => {
   );
 };
 
-export default SalesLeads;
+export default RetentionLeads;
