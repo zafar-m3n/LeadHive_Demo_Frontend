@@ -49,16 +49,15 @@ const DatePopover = ({ label, value, onChangeISO, minDate, maxDate, clampMinTo, 
   };
 
   return (
-    <div className="w-full relative">
-      {label && <label className="block mb-1 text-sm font-medium text-gray-800">{label}</label>}
+    <div className="relative w-full">
+      {label && <label className="mb-1 block text-sm font-medium text-gray-800">{label}</label>}
 
       <button
         ref={btnRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="w-full bg-white border rounded px-3 py-2 text-left text-sm text-gray-800 
-                   placeholder-gray-600 focus:outline-none focus:border-accent transition 
-                   border-gray-300 flex items-center justify-between"
+        className="flex w-full items-center justify-between rounded border border-gray-300 bg-white px-3 py-2 text-left text-sm text-gray-800 
+                   placeholder-gray-600 transition focus:border-accent focus:outline-none"
       >
         <span className={value ? "" : "text-gray-400"}>{value || "Select date"}</span>
         <IconComponent icon="mdi:calendar" width={18} className="text-gray-600" />
@@ -299,8 +298,8 @@ const LeadsFiltersToolbar = ({
 
   return (
     <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-      <div className="flex flex-col gap-3 md:flex-row md:items-end">
-        <div className="flex-1">
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-end">
+        <div className="min-w-0 flex-1">
           <TextInput
             label="Search (name / email / phone)"
             placeholder="Type to search…"
@@ -310,35 +309,49 @@ const LeadsFiltersToolbar = ({
           />
         </div>
 
-        <div className="flex gap-2 md:ml-3">
-          <button
-            onClick={() => onChange({ search: "" })}
-            disabled={!search}
-            className={`inline-flex items-center gap-1 rounded-md border px-3 py-2 text-sm transition ${
-              search ? "border-gray-300 hover:bg-gray-50" : "border-gray-200 text-gray-400 cursor-not-allowed"
-            }`}
-            title="Clear search text"
-          >
-            <IconComponent icon="mdi:close-circle" width={18} />
-            Clear search
-          </button>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end xl:ml-3">
+          {limitOptions.length > 0 && (
+            <div className="w-full sm:w-40">
+              <Select
+                label="Rows per page"
+                value={limit}
+                onChange={onLimitChange}
+                options={limitOptions}
+                placeholder="25"
+              />
+            </div>
+          )}
 
-          <button
-            onClick={onResetAll}
-            disabled={!hasActiveFilters}
-            className={`inline-flex items-center gap-1 rounded-md px-3 py-2 text-sm transition ${
-              hasActiveFilters
-                ? "bg-accent text-white hover:bg-accent/80"
-                : "bg-gray-200 text-gray-500 cursor-not-allowed"
-            }`}
-            title="Reset all filters"
-          >
-            <IconComponent icon="mdi:filter-remove" width={18} />
-            Reset filters
-            {hasActiveFilters && (
-              <span className="ml-1 rounded bg-white/20 px-1.5 py-0.5 text-[10px]">{chips.length}</span>
-            )}
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => onChange({ search: "" })}
+              disabled={!search}
+              className={`inline-flex items-center gap-1 rounded-md border px-3 py-2 text-sm transition ${
+                search ? "border-gray-300 hover:bg-gray-50" : "cursor-not-allowed border-gray-200 text-gray-400"
+              }`}
+              title="Clear search text"
+            >
+              <IconComponent icon="mdi:close-circle" width={18} />
+              Clear search
+            </button>
+
+            <button
+              onClick={onResetAll}
+              disabled={!hasActiveFilters}
+              className={`inline-flex items-center gap-1 rounded-md px-3 py-2 text-sm transition ${
+                hasActiveFilters
+                  ? "bg-accent text-white hover:bg-accent/80"
+                  : "cursor-not-allowed bg-gray-200 text-gray-500"
+              }`}
+              title="Reset all filters"
+            >
+              <IconComponent icon="mdi:filter-remove" width={18} />
+              Reset filters
+              {hasActiveFilters && (
+                <span className="ml-1 rounded bg-white/20 px-1.5 py-0.5 text-[10px]">{chips.length}</span>
+              )}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -410,16 +423,6 @@ const LeadsFiltersToolbar = ({
           options={sortFields}
           placeholder="Default (ID)"
         />
-
-        {limitOptions.length > 0 && (
-          <Select
-            label="Rows per page"
-            value={limit}
-            onChange={onLimitChange}
-            options={limitOptions}
-            placeholder="25"
-          />
-        )}
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">

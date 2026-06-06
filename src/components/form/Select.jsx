@@ -2,11 +2,13 @@ import React from "react";
 import SelectLib from "react-select";
 
 const Select = ({ value, onChange, options = [], placeholder = "Select", error, label, ...rest }) => {
+  const accentColor = "var(--color-accent)";
+
   const customStyles = {
     control: (base, state) => ({
       ...base,
       backgroundColor: "#fff",
-      borderColor: error ? "#f87171" : state.isFocused ? "#7ed957" : "#d1d5db",
+      borderColor: error ? "#f87171" : state.isFocused ? accentColor : "#d1d5db",
       boxShadow: "none",
       color: "#111827",
     }),
@@ -28,7 +30,7 @@ const Select = ({ value, onChange, options = [], placeholder = "Select", error, 
     }),
     option: (base, { isFocused }) => ({
       ...base,
-      backgroundColor: isFocused ? "#7ed957" : "#fff",
+      backgroundColor: isFocused ? accentColor : "#fff",
       color: isFocused ? "#fff" : "#111827",
       cursor: "pointer",
     }),

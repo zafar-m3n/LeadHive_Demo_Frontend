@@ -2,11 +2,14 @@ import React from "react";
 import SelectLib from "react-select";
 
 const MultiSelect = ({ value = [], onChange, options = [], placeholder = "Select", error, label, ...rest }) => {
+  const accentColor = "var(--color-accent)";
+  const accentSoftColor = "color-mix(in srgb, var(--color-accent) 18%, white)";
+
   const customStyles = {
     control: (base, state) => ({
       ...base,
       backgroundColor: "#fff",
-      borderColor: error ? "#f87171" : state.isFocused ? "#7ed957" : "#d1d5db",
+      borderColor: error ? "#f87171" : state.isFocused ? accentColor : "#d1d5db",
       boxShadow: "none",
       color: "#111827",
     }),
@@ -43,7 +46,7 @@ const MultiSelect = ({ value = [], onChange, options = [], placeholder = "Select
     }),
     option: (base, { isFocused, isSelected }) => ({
       ...base,
-      backgroundColor: isSelected ? "#7ed957" : isFocused ? "#d9e9cf" : "#fff",
+      backgroundColor: isSelected ? accentColor : isFocused ? accentSoftColor : "#fff",
       color: isSelected ? "#fff" : "#111827",
       cursor: "pointer",
     }),
