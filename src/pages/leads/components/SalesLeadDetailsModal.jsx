@@ -9,6 +9,7 @@ import Badge from "@/components/ui/Badge";
 import Modal from "@/components/ui/Modal";
 import Tooltip from "@/components/ui/Tooltip";
 import SalesLeadsModal from "./SalesLeadsModal";
+import { getStatusColor, getSourceColor, getCampaignColor } from "@/utils/leadColors";
 
 const initialsFromName = (first, last) => {
   try {
@@ -149,7 +150,15 @@ const SalesLeadDetailsModal = ({ isOpen, onClose, leadId, statuses = [], ordered
   const initials = initialsFromName(lead?.first_name, lead?.last_name);
   const fullName = [lead?.first_name, lead?.last_name].filter(Boolean).join(" ").trim() || "Lead Details";
   const assignedTo = latestAssignment?.assignee?.full_name || latestAssignment?.assignee?.email || "Unassigned";
+
+  const statusLabel = lead?.LeadStatus?.label || "No Status";
+  const statusValue = lead?.LeadStatus?.value || "";
+
+  const sourceLabel = lead?.LeadSource?.label || "No Source";
+  const sourceValue = lead?.LeadSource?.value || "";
+
   const campaignLabel = lead?.Campaign?.label || lead?.Campaign?.value || lead?.campaign_id || "No Campaign";
+  const campaignValue = lead?.Campaign?.value || lead?.Campaign?.label || lead?.campaign_id || "";
 
   return (
     <>
@@ -170,9 +179,9 @@ const SalesLeadDetailsModal = ({ isOpen, onClose, leadId, statuses = [], ordered
 
                 {lead && (
                   <>
-                    <Badge text={lead.LeadStatus?.label || "No Status"} color="blue" size="sm" />
-                    <Badge text={lead.LeadSource?.label || "No Source"} color="purple" size="sm" />
-                    <Badge text={campaignLabel} color="gray" size="sm" />
+                    <Badge text={statusLabel} color={getStatusColor(statusValue)} size="sm" />
+                    <Badge text={sourceLabel} color={getSourceColor(sourceValue)} size="sm" />
+                    <Badge text={campaignLabel} color={getCampaignColor(campaignValue)} size="sm" />
                   </>
                 )}
               </div>
@@ -234,9 +243,9 @@ const SalesLeadDetailsModal = ({ isOpen, onClose, leadId, statuses = [], ordered
                     <div className="min-w-0">
                       <h3 className="break-words text-2xl font-semibold text-gray-900">{fullName}</h3>
                       <div className="mt-2 flex flex-wrap gap-2">
-                        <Badge text={lead.LeadStatus?.label || "No Status"} color="blue" size="sm" />
-                        <Badge text={lead.LeadSource?.label || "No Source"} color="purple" size="sm" />
-                        <Badge text={campaignLabel} color="gray" size="sm" />
+                        <Badge text={statusLabel} color={getStatusColor(statusValue)} size="sm" />
+                        <Badge text={sourceLabel} color={getSourceColor(sourceValue)} size="sm" />
+                        <Badge text={campaignLabel} color={getCampaignColor(campaignValue)} size="sm" />
                       </div>
                     </div>
                   </div>
@@ -266,7 +275,7 @@ const SalesLeadDetailsModal = ({ isOpen, onClose, leadId, statuses = [], ordered
                   <h3 className="text-xl font-semibold text-gray-900">Notes</h3>
                 </div>
 
-                <div className="mt-5 space-y-4 max-h-[360px] overflow-y-auto pr-2 app-scrollbar">
+                <div className="mt-5 max-h-[360px] space-y-4 overflow-y-auto pr-2 app-scrollbar">
                   {Array.isArray(lead.notes) && lead.notes.length > 0 ? (
                     lead.notes.map((note) => {
                       const authorName = note.author?.full_name || note.author?.email || "Unknown";

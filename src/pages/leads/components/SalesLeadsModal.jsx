@@ -4,7 +4,7 @@ import Select from "@/components/form/Select";
 import AccentButton from "@/components/ui/AccentButton";
 import GrayButton from "@/components/ui/GrayButton";
 import Badge from "@/components/ui/Badge";
-import { getSourceColor } from "@/utils/leadColors";
+import { getSourceColor, getCampaignColor } from "@/utils/leadColors";
 
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
@@ -61,10 +61,12 @@ const SalesLeadsModal = ({ isOpen, onClose, onSubmit, editingLead, statuses, loa
 
   const sourceLabel = editingLead?.LeadSource?.label || "No source";
   const sourceValue = editingLead?.LeadSource?.value || "";
-  const sourceColor = getSourceColor ? getSourceColor(sourceValue) : "gray";
+  const sourceColor = getSourceColor(sourceValue);
 
   const campaignLabel =
     editingLead?.Campaign?.label || editingLead?.Campaign?.value || editingLead?.campaign_id || "No campaign";
+  const campaignValue = editingLead?.Campaign?.value || editingLead?.Campaign?.label || editingLead?.campaign_id || "";
+  const campaignColor = getCampaignColor(campaignValue);
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Lead Overview & Update" size="xl" centered={true}>
@@ -72,11 +74,11 @@ const SalesLeadsModal = ({ isOpen, onClose, onSubmit, editingLead, statuses, loa
         <div className="py-4 text-sm text-gray-600">No lead selected.</div>
       ) : (
         <form onSubmit={handleSubmit(submitHandler)} className="space-y-6 text-sm">
-          <div className="rounded-2xl border border-gray-200 bg-white shadow-sm p-4">
-            <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+            <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center">
-                  <span className="text-amber-700 text-sm font-semibold">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-100">
+                  <span className="text-sm font-semibold text-amber-700">
                     {(editingLead?.first_name?.[0] || editingLead?.last_name?.[0] || "L").toUpperCase()}
                   </span>
                 </div>
@@ -90,14 +92,14 @@ const SalesLeadsModal = ({ isOpen, onClose, onSubmit, editingLead, statuses, loa
                 <Badge text={editingLead?.email || "No email"} color="gray" size="sm" icon="mdi:email-outline" />
                 <Badge text={editingLead?.phone || "No phone"} color="gray" size="sm" icon="mdi:phone-outline" />
                 <Badge text={sourceLabel} color={sourceColor} size="sm" icon="mdi:source-branch" />
-                <Badge text={campaignLabel} color="gray" size="sm" icon="mdi:bullhorn-outline" />
+                <Badge text={campaignLabel} color={campaignColor} size="sm" icon="mdi:bullhorn-outline" />
                 <Badge text={assigneeName} color="indigo" size="sm" icon="mdi:account-circle-outline" />
               </div>
             </div>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-white shadow-sm p-4">
-            <h3 className="text-xs font-semibold text-gray-600 mb-3">Update Status</h3>
+          <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+            <h3 className="mb-3 text-xs font-semibold text-gray-600">Update Status</h3>
             <Select
               label="Status"
               value={watch("status_id") || ""}
@@ -108,8 +110,8 @@ const SalesLeadsModal = ({ isOpen, onClose, onSubmit, editingLead, statuses, loa
             />
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-white shadow-sm p-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
               <KV label="Company" value={editingLead?.company || "-"} />
               <KV label="Country" value={editingLead?.country || "-"} />
               <KV label="Source" value={sourceLabel} />
@@ -117,7 +119,7 @@ const SalesLeadsModal = ({ isOpen, onClose, onSubmit, editingLead, statuses, loa
             </div>
           </div>
 
-          <div className="pt-1 flex justify-end gap-2">
+          <div className="flex justify-end gap-2 pt-1">
             <GrayButton text="Cancel" onClick={onClose} />
             <AccentButton type="submit" text="Save Changes" loading={loading} />
           </div>

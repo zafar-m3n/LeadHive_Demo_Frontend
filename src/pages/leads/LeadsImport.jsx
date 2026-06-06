@@ -10,6 +10,7 @@ import Icon from "@/components/ui/Icon";
 import Heading from "@/components/ui/Heading";
 import Select from "@/components/form/Select";
 import TextInput from "@/components/form/TextInput";
+import ConfirmUploadModal from "./components/ConfirmUploadModal";
 import Papa from "papaparse";
 
 const OTHER_SOURCE_VALUE = "__other__";
@@ -43,6 +44,7 @@ function LeadsImport() {
 
   const [redirectIn, setRedirectIn] = useState(5);
   const [isDragging, setIsDragging] = useState(false);
+  const [isConfirmUploadOpen, setIsConfirmUploadOpen] = useState(false);
 
   useEffect(() => {
     const fetchSchema = async () => {
@@ -204,6 +206,25 @@ function LeadsImport() {
     return `${(file.size / (1024 * 1024)).toFixed(1)} MB`;
   }, [file]);
 
+  const validateBeforeImport = () => {
+    if (rows.length === 0) {
+      Notification.error("No rows parsed. Upload a valid CSV first.");
+      return false;
+    }
+
+    if (selectedFallbackSource === OTHER_SOURCE_VALUE && !otherFallbackSource.trim()) {
+      Notification.error("Please enter a source name.");
+      return false;
+    }
+
+    if (selectedFallbackCampaign === OTHER_CAMPAIGN_VALUE && !otherFallbackCampaign.trim()) {
+      Notification.error("Please enter a campaign name.");
+      return false;
+    }
+
+    return true;
+  };
+
   const onDragOver = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -272,27 +293,21 @@ function LeadsImport() {
     setRows([]);
     setParseError("");
     setResult(null);
+    setIsConfirmUploadOpen(false);
 
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
   };
 
-  const handleImport = async () => {
-    if (rows.length === 0) {
-      Notification.error("No rows parsed. Upload a valid CSV first.");
-      return;
-    }
+  const handleRequestImport = () => {
+    if (!validateBeforeImport()) return;
 
-    if (selectedFallbackSource === OTHER_SOURCE_VALUE && !otherFallbackSource.trim()) {
-      Notification.error("Please enter a source name.");
-      return;
-    }
+    setIsConfirmUploadOpen(true);
+  };
 
-    if (selectedFallbackCampaign === OTHER_CAMPAIGN_VALUE && !otherFallbackCampaign.trim()) {
-      Notification.error("Please enter a campaign name.");
-      return;
-    }
+  const handleConfirmImport = async () => {
+    if (!validateBeforeImport()) return;
 
     setImporting(true);
     setResult(null);
@@ -309,6 +324,7 @@ function LeadsImport() {
       if (res.data?.success) {
         Notification.success(res.data.message || "Leads imported successfully");
         setResult(res.data);
+        setIsConfirmUploadOpen(false);
       } else {
         Notification.error(res.data?.error || "Import failed");
         setResult(res.data);
@@ -367,20 +383,6 @@ function LeadsImport() {
               <p className="max-w-2xl text-sm text-gray-600">
                 Upload your CSV file, review the preview, then import your leads.
               </p>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              <div className="w-fit">
-                <GrayButton text="Cancel" onClick={handleCancel} />
-              </div>
-
-              <div className="w-fit">
-                <AccentButton
-                  text={importing ? "Importing..." : "Import Leads"}
-                  onClick={handleImport}
-                  disabled={importing || rows.length === 0}
-                />
-              </div>
             </div>
           </div>
         </div>
@@ -557,29 +559,6 @@ function LeadsImport() {
                           </div>
                         </div>
                       </div>
-
-                      <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
-                        <div className="w-fit">
-                          <GrayButton text="Cancel" onClick={handleCancel} />
-                        </div>
-
-                        <div className="w-fit">
-                          <AccentButton
-                            text={importing ? "Importing..." : "Import"}
-                            onClick={handleImport}
-                            disabled={importing || rows.length === 0}
-                          />
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={handleRemoveFile}
-                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 transition hover:border-gray-300 hover:text-gray-900"
-                          aria-label="Remove selected file"
-                        >
-                          <Icon icon="mdi:close" width={18} />
-                        </button>
-                      </div>
                     </div>
                   </div>
                 )}
@@ -604,7 +583,7 @@ function LeadsImport() {
                     <div className="w-fit">
                       <AccentButton
                         text={importing ? "Importing..." : "Import Leads"}
-                        onClick={handleImport}
+                        onClick={handleRequestImport}
                         disabled={importing || rows.length === 0}
                       />
                     </div>
@@ -728,37 +707,25 @@ function LeadsImport() {
                 </p>
               </div>
 
-              <div className="mt-5 flex flex-wrap gap-2">
+              <div className="mt-5 flex justify-center items-center flex-wrap gap-2">
                 <div className="w-fit">
                   <AccentButton text="Download Template CSV" onClick={handleDownloadTemplate} />
                 </div>
               </div>
-
-              <div className="mt-5">
-                {schemaLoading ? (
-                  <p className="text-sm text-gray-500">Loading template...</p>
-                ) : schema?.fields?.length ? (
-                  <>
-                    <p className="mb-3 text-sm font-medium text-gray-900">Included Columns</p>
-
-                    <div className="flex flex-wrap gap-2">
-                      {schema.fields.map((field) => (
-                        <span
-                          key={field}
-                          className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-700"
-                        >
-                          {field}
-                        </span>
-                      ))}
-                    </div>
-                  </>
-                ) : (
-                  <p className="text-sm text-gray-500">No template available.</p>
-                )}
-              </div>
             </div>
           </div>
         </div>
+
+        <ConfirmUploadModal
+          isOpen={isConfirmUploadOpen}
+          file={file}
+          rowCount={rows.length}
+          fallbackSource={resolvedFallbackSource}
+          fallbackCampaign={resolvedFallbackCampaign}
+          loading={importing}
+          onCancel={() => setIsConfirmUploadOpen(false)}
+          onConfirm={handleConfirmImport}
+        />
       </div>
     </DefaultLayout>
   );

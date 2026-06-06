@@ -3,7 +3,7 @@ import ReactDOM from "react-dom";
 import Badge from "@/components/ui/Badge";
 import IconComponent from "@/components/ui/Icon";
 import Tooltip from "@/components/ui/Tooltip";
-import { getStatusColor, getSourceColor } from "@/utils/leadColors";
+import { getStatusColor, getSourceColor, getCampaignColor } from "@/utils/leadColors";
 import { formatDate } from "@/utils/formatDate";
 
 const MENU_WIDTH = 260;
@@ -55,7 +55,7 @@ const LeadsTable = ({
   const [assigneeQuery, setAssigneeQuery] = useState("");
 
   // -------------------------
-  // Status dropdown state (no search UI)
+  // Status dropdown state
   // -------------------------
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(null);
   const [openLeadStatus, setOpenLeadStatus] = useState(null);
@@ -72,6 +72,7 @@ const LeadsTable = ({
   // =========================
   const normStatus = useCallback((s) => {
     if (!s) return null;
+
     return {
       id: s.id ?? s.value,
       value: s.value,
@@ -82,8 +83,11 @@ const LeadsTable = ({
 
   const sameStatusById = useCallback((lead, s) => {
     const sid = s?.id;
+
     if (!lead || !sid) return false;
+
     const currentId = lead?.LeadStatus?.id ?? lead?.status_id;
+
     return Number(currentId) === Number(sid);
   }, []);
 
@@ -104,7 +108,6 @@ const LeadsTable = ({
     [isSortedBy, orderDir],
   );
 
-  // Close helpers
   const closeAssigneeDropdown = useCallback(() => {
     setDropdownOpen(null);
     setOpenLead(null);
@@ -151,7 +154,9 @@ const LeadsTable = ({
 
     const updatePos = () => {
       const trigger = document.querySelector(`[data-assignee-trigger="${dropdownOpen}"]`);
+
       if (!trigger) return;
+
       const rect = trigger.getBoundingClientRect();
       computeAndSetPosition(rect, setDropdownPos);
     };
@@ -170,7 +175,9 @@ const LeadsTable = ({
 
     const updatePos = () => {
       const trigger = document.querySelector(`[data-status-trigger="${statusDropdownOpen}"]`);
+
       if (!trigger) return;
+
       const rect = trigger.getBoundingClientRect();
       computeAndSetPosition(rect, setStatusDropdownPos);
     };
@@ -197,7 +204,10 @@ const LeadsTable = ({
 
     if (overflowRight) {
       left = rect.right + window.scrollX - MENU_WIDTH;
-      if (left < MARGIN) left = MARGIN;
+
+      if (left < MARGIN) {
+        left = MARGIN;
+      }
     }
 
     let top;
@@ -222,16 +232,21 @@ const LeadsTable = ({
 
   const getLatestAssignment = (lead) => {
     const arr = lead?.LeadAssignments || [];
+
     if (!arr.length) return null;
+
     const latest = [...arr].sort((a, b) => new Date(b.assigned_at) - new Date(a.assigned_at))[0];
+
     return latest || null;
   };
 
   const getCurrentAssignee = (lead) => getLatestAssignment(lead)?.assignee || null;
+
   const getCurrentAssigneeName = (lead) => getCurrentAssignee(lead)?.full_name || "-";
 
   const toggleAssigneeDropdown = (lead, e) => {
     const rect = e.currentTarget.getBoundingClientRect();
+
     closeStatusDropdown();
 
     if (dropdownOpen === lead.id) {
@@ -246,6 +261,7 @@ const LeadsTable = ({
 
   const toggleStatusDropdown = (lead, e) => {
     const rect = e.currentTarget.getBoundingClientRect();
+
     closeAssigneeDropdown();
 
     if (statusDropdownOpen === lead.id) {
@@ -268,12 +284,13 @@ const LeadsTable = ({
   const dropdownTargets = useMemo(() => managers || [], [managers]);
 
   // =========================
-  // Permission to open dropdowns
+  // Permissions
   // =========================
   const canReassign = (lead) => {
     if (mode === "admin") return true;
 
     const current = getCurrentAssignee(lead);
+
     if (!current) return false;
 
     if (mode === "manager") {
@@ -282,6 +299,7 @@ const LeadsTable = ({
 
     if (mode === "sales") {
       if (!selfId) return false;
+
       return Number(current.role_id) === ROLE.SALES_REP && Number(current.id) === Number(selfId);
     }
 
@@ -292,6 +310,7 @@ const LeadsTable = ({
 
   const filteredAssigneeTargets = useMemo(() => {
     const q = assigneeQuery.trim().toLowerCase();
+
     if (!q) return dropdownTargets;
 
     return dropdownTargets.filter(
@@ -309,6 +328,7 @@ const LeadsTable = ({
   const W_DATE = "w-[170px]";
 
   const allOnPageChecked = showSelection && leads.length > 0 && leads.every((l) => selectedIds.includes(l.id));
+
   const someOnPageChecked =
     showSelection && leads.length > 0 && leads.some((l) => selectedIds.includes(l.id)) && !allOnPageChecked;
 
@@ -319,13 +339,13 @@ const LeadsTable = ({
     (showSelection ? 1 : 0) + 1 + 1 + 1 + 1 + 1 + 1 + (showAssigneeCol ? 1 : 0) + (showActionsCol ? 1 : 0);
 
   return (
-    <div className="w-full overflow-x-auto rounded-lg border border-gray-200 relative">
+    <div className="relative w-full overflow-x-auto rounded-lg border border-gray-200">
       <table className="w-full table-auto text-sm leading-[1.25rem]">
         <thead className="bg-accent/20 uppercase tracking-wider">
-          <tr className="text-[11px] text-gray-800 font-semibold">
+          <tr className="text-[11px] font-semibold text-gray-800">
             {showSelection && (
               <th className={`px-2 py-2 text-left font-semibold ${W_SELECT}`}>
-                <label className="inline-flex items-center gap-2 cursor-pointer select-none">
+                <label className="inline-flex cursor-pointer select-none items-center gap-2">
                   <input
                     type="checkbox"
                     className="peer sr-only"
@@ -334,18 +354,19 @@ const LeadsTable = ({
                     onChange={(e) => onToggleSelectAll(e.target.checked)}
                     aria-label="Select all rows on page"
                   />
+
                   <span
                     data-indeterminate={someOnPageChecked ? "true" : undefined}
                     className="relative inline-flex h-4 w-4 items-center justify-center rounded border border-gray-300 bg-white shadow-sm
                       transition-colors duration-200 ease-in-out
+                      after:absolute after:left-1/2 after:top-1/2 after:h-0.5 after:w-2 after:-translate-x-1/2 after:-translate-y-1/2
+                      after:rounded-sm after:bg-white after:opacity-0
+                      peer-checked:border-indigo-500 peer-checked:bg-indigo-500
                       peer-focus-visible:ring-2 peer-focus-visible:ring-indigo-300
-                      peer-checked:bg-indigo-500 peer-checked:border-indigo-500
-                      after:absolute after:h-0.5 after:w-2 after:rounded-sm after:bg-white after:opacity-0
-                      after:left-1/2 after:top-1/2 after:-translate-x-1/2 after:-translate-y-1/2
                       data-[indeterminate=true]:after:opacity-100"
                   >
                     <svg
-                      className="h-3 w-3 text-white opacity-0 pointer-events-none transition-opacity duration-200 ease-in-out peer-checked:opacity-100"
+                      className="pointer-events-none h-3 w-3 text-white opacity-0 transition-opacity duration-200 ease-in-out peer-checked:opacity-100"
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
@@ -362,7 +383,7 @@ const LeadsTable = ({
 
             <th className={`px-3 py-2 text-left font-semibold ${W_LEAD}`}>Lead</th>
             <th className={`px-3 py-2 text-left font-semibold ${W_COMPANY}`}>Company</th>
-            <th className={`px-3 py-2 text-left font-semibold hidden md:table-cell ${W_PHONE}`}>Phone</th>
+            <th className={`hidden px-3 py-2 text-left font-semibold md:table-cell ${W_PHONE}`}>Phone</th>
             <th className={`px-3 py-2 text-left font-semibold ${W_DETAILS}`}>Lead Details</th>
             <th className={`px-3 py-2 text-left font-semibold ${W_DATE}`}>Created</th>
 
@@ -370,7 +391,7 @@ const LeadsTable = ({
               <button
                 type="button"
                 onClick={() => onSortClick("updated_at")}
-                className="inline-flex items-center gap-1 text-left uppercase tracking-wider hover:text-indigo-700 transition"
+                className="inline-flex items-center gap-1 text-left uppercase tracking-wider transition hover:text-indigo-700"
                 aria-label={`Sort by Last Contacted ${isSortedBy("updated_at") ? `currently ${orderDir}` : ""}`}
               >
                 <span>Last Contacted</span>
@@ -398,6 +419,7 @@ const LeadsTable = ({
               const sourceLabel = row.LeadSource?.label || "-";
               const sourceValue = row.LeadSource?.value || "";
               const campaignLabel = row.Campaign?.label || row.Campaign?.value || row.campaign_id || "-";
+              const campaignValue = row.Campaign?.value || row.Campaign?.label || row.campaign_id || "";
               const phone = row.phone && row.phone.length > 4 ? row.phone : "N/A";
               const assigneeName = getCurrentAssigneeName(row);
               const created = formatDate(row.created_at);
@@ -416,7 +438,7 @@ const LeadsTable = ({
                 <tr key={row.id} className="border-t border-gray-100 hover:bg-gray-50/70">
                   {showSelection && (
                     <td className={`px-2 py-2 align-top ${W_SELECT}`}>
-                      <label className="inline-flex items-center gap-2 cursor-pointer select-none">
+                      <label className="inline-flex cursor-pointer select-none items-center gap-2">
                         <input
                           type="checkbox"
                           className="peer sr-only"
@@ -424,14 +446,14 @@ const LeadsTable = ({
                           onChange={() => onToggleSelect(row.id)}
                           aria-label={`Select lead ${row.id}`}
                         />
+
                         <span
                           className="relative inline-flex h-4 w-4 items-center justify-center rounded border border-gray-300 bg-white shadow-sm
-                            transition-colors duration-200 ease-in-out
-                            peer-focus-visible:ring-2 peer-focus-visible:ring-indigo-300
-                            peer-checked:bg-indigo-500 peer-checked:border-indigo-500"
+                            transition-colors duration-200 ease-in-out peer-checked:border-indigo-500 peer-checked:bg-indigo-500
+                            peer-focus-visible:ring-2 peer-focus-visible:ring-indigo-300"
                         >
                           <svg
-                            className="h-3 w-3 text-white opacity-0 pointer-events-none transition-opacity duration-200 ease-in-out peer-checked:opacity-100"
+                            className="pointer-events-none h-3 w-3 text-white opacity-0 transition-opacity duration-200 ease-in-out peer-checked:opacity-100"
                             viewBox="0 0 24 24"
                             fill="none"
                             stroke="currentColor"
@@ -450,23 +472,23 @@ const LeadsTable = ({
                     <button
                       type="button"
                       onClick={() => onEdit && onEdit(row)}
-                      className={`flex flex-col overflow-hidden text-left group ${W_LEAD}`}
+                      className={`group flex flex-col overflow-hidden text-left ${W_LEAD}`}
                       aria-label={`Open details for ${fullName}`}
                     >
-                      <span className="font-medium text-gray-900 truncate group-hover:underline">{fullName}</span>
-                      <span className="text-xs text-gray-600 truncate group-hover:underline">{row.email || "-"}</span>
+                      <span className="truncate font-medium text-gray-900 group-hover:underline">{fullName}</span>
+                      <span className="truncate text-xs text-gray-600 group-hover:underline">{row.email || "-"}</span>
                     </button>
                   </td>
 
                   <td className="px-3 py-2 align-top">
                     <div className={`overflow-hidden ${W_COMPANY}`}>
-                      <span className="truncate block">{row.company || "-"}</span>
+                      <span className="block truncate">{row.company || "-"}</span>
                     </div>
                   </td>
 
-                  <td className={`px-3 py-2 whitespace-nowrap hidden md:table-cell align-top ${W_PHONE}`}>
+                  <td className={`hidden whitespace-nowrap px-3 py-2 align-top md:table-cell ${W_PHONE}`}>
                     <div className="overflow-hidden">
-                      <span className="truncate block">{phone}</span>
+                      <span className="block truncate">{phone}</span>
                     </div>
                   </td>
 
@@ -481,6 +503,7 @@ const LeadsTable = ({
                             aria-label="Change status"
                           >
                             <Badge text={statusLabel} color={getStatusColor(statusValue)} size="sm" rounded="rounded" />
+
                             <IconComponent
                               icon="mdi:chevron-down"
                               width={18}
@@ -494,12 +517,15 @@ const LeadsTable = ({
                         <Badge text={statusLabel} color={getStatusColor(statusValue)} size="sm" rounded="rounded" />
                       )}
 
-                      <div className="flex flex-wrap items-center gap-1.5">
+                      <div className="flex max-w-full flex-wrap items-center gap-1.5">
                         <Badge text={sourceLabel} color={getSourceColor(sourceValue)} size="sm" rounded="rounded" />
 
-                        <span className="inline-flex max-w-[180px] items-center rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">
-                          <span className="truncate">{campaignLabel}</span>
-                        </span>
+                        <Badge
+                          text={campaignLabel}
+                          color={getCampaignColor(campaignValue)}
+                          size="sm"
+                          rounded="rounded"
+                        />
                       </div>
                     </div>
                   </td>
@@ -519,10 +545,11 @@ const LeadsTable = ({
                           <button
                             data-assignee-trigger={row.id}
                             onClick={(e) => toggleAssigneeDropdown(row, e)}
-                            className="flex items-center gap-1 text-gray-800 assignee-trigger hover:text-black overflow-hidden"
+                            className="assignee-trigger flex items-center gap-1 overflow-hidden text-gray-800 hover:text-black"
                             aria-label="Change assignee"
                           >
                             <span className="truncate">{assigneeName}</span>
+
                             <IconComponent
                               icon="mdi:chevron-down"
                               width={18}
@@ -533,7 +560,7 @@ const LeadsTable = ({
                           </button>
                         </Tooltip>
                       ) : (
-                        <div className="flex items-center gap-1 text-gray-500 overflow-hidden">
+                        <div className="flex items-center gap-1 overflow-hidden text-gray-500">
                           <span className="truncate">{assigneeName}</span>
                         </div>
                       )}
@@ -547,7 +574,7 @@ const LeadsTable = ({
                           <Tooltip content="Delete lead" placement="top" theme="light">
                             <button
                               onClick={() => onDelete(row)}
-                              className="inline-flex items-center px-2 py-1 border border-gray-300 rounded hover:bg-gray-100"
+                              className="inline-flex items-center rounded border border-gray-300 px-2 py-1 hover:bg-gray-100"
                               aria-label="Delete lead"
                             >
                               <IconComponent icon="mdi:delete" width={18} className="text-gray-800" />
@@ -567,10 +594,10 @@ const LeadsTable = ({
       {statusDropdownOpen &&
         ReactDOM.createPortal(
           <div
-            className={`status-portal-dropdown fixed bg-white border border-gray-200 rounded-lg shadow-xl z-[9999] transform transition-all duration-200 font-dm-sans ${
+            className={`status-portal-dropdown fixed z-[9999] transform rounded-lg border border-gray-200 bg-white font-dm-sans shadow-xl transition-all duration-200 ${
               statusDropdownOpen
-                ? "opacity-100 scale-100 visible pointer-events-auto"
-                : "opacity-0 scale-95 invisible pointer-events-none"
+                ? "visible scale-100 opacity-100 pointer-events-auto"
+                : "invisible scale-95 opacity-0 pointer-events-none"
             } ${statusDropdownPos.placeAbove ? "origin-bottom -translate-y-full" : "origin-top"}`}
             style={{ top: statusDropdownPos.top, left: statusDropdownPos.left, width: `${MENU_WIDTH}px` }}
             role="listbox"
@@ -582,7 +609,7 @@ const LeadsTable = ({
                 const list = all.filter((s) => !sameStatusById(openLeadStatus, s));
 
                 if (!list.length) {
-                  return <div className="px-3 py-2 text-gray-500 text-xs">No other statuses</div>;
+                  return <div className="px-3 py-2 text-xs text-gray-500">No other statuses</div>;
                 }
 
                 return list.map((s) => (
@@ -590,17 +617,19 @@ const LeadsTable = ({
                     key={s.id}
                     onClick={async () => {
                       const lead = openLeadStatus;
+
                       closeStatusDropdown();
+
                       if (lead && onStatusUpdate) {
                         await onStatusUpdate(lead, { id: s.id, label: s.label, value: s.value });
                       }
                     }}
-                    className="px-3 py-2 text-xs cursor-pointer hover:bg-indigo-50 text-gray-800"
+                    className="cursor-pointer px-3 py-2 text-xs text-gray-800 hover:bg-indigo-50"
                     role="option"
                     aria-selected={false}
                     title={s.label}
                   >
-                    <span className="truncate block">{s.label}</span>
+                    <span className="block truncate">{s.label}</span>
                   </div>
                 ));
               })()}
@@ -612,16 +641,16 @@ const LeadsTable = ({
       {showAssigneeCol &&
         ReactDOM.createPortal(
           <div
-            className={`assignee-portal-dropdown fixed bg-white border border-gray-200 rounded-lg shadow-xl z-[9999] transform transition-all duration-200 font-dm-sans ${
+            className={`assignee-portal-dropdown fixed z-[9999] transform rounded-lg border border-gray-200 bg-white font-dm-sans shadow-xl transition-all duration-200 ${
               dropdownOpen
-                ? "opacity-100 scale-100 visible pointer-events-auto"
-                : "opacity-0 scale-95 invisible pointer-events-none"
+                ? "visible scale-100 opacity-100 pointer-events-auto"
+                : "invisible scale-95 opacity-0 pointer-events-none"
             } ${dropdownPos.placeAbove ? "origin-bottom -translate-y-full" : "origin-top"}`}
             style={{ top: dropdownPos.top, left: dropdownPos.left, width: `${MENU_WIDTH}px` }}
             role="listbox"
             aria-hidden={!dropdownOpen}
           >
-            <div className="p-2 border-b border-gray-200 sticky top-0 bg-white">
+            <div className="sticky top-0 border-b border-gray-200 bg-white p-2">
               <div className="relative">
                 <input
                   type="text"
@@ -631,11 +660,13 @@ const LeadsTable = ({
                   className="w-full rounded-md border border-gray-300 px-8 py-1.5 text-xs text-gray-900 placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                   autoFocus
                 />
+
                 <IconComponent
                   icon="mdi:magnify"
                   width={16}
                   className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500"
                 />
+
                 {assigneeQuery && (
                   <button
                     onClick={() => setAssigneeQuery("")}
@@ -659,27 +690,32 @@ const LeadsTable = ({
                       key={m.id}
                       onClick={() => {
                         const lead = openLead;
+
                         closeAssigneeDropdown();
-                        if (lead) onAssignOptionClick(lead, m);
+
+                        if (lead) {
+                          onAssignOptionClick(lead, m);
+                        }
                       }}
-                      className={`px-3 py-2 text-xs cursor-pointer flex items-start justify-between hover:bg-indigo-50 ${
+                      className={`flex cursor-pointer items-start justify-between px-3 py-2 text-xs hover:bg-indigo-50 ${
                         isCurrent ? "bg-indigo-50" : ""
                       }`}
                       role="option"
                       aria-selected={isCurrent}
                     >
                       <div className="min-w-0">
-                        <span className="font-medium text-black block truncate">{m.full_name}</span>
-                        <div className="text-[11px] text-gray-500 truncate">{m.email}</div>
+                        <span className="block truncate font-medium text-black">{m.full_name}</span>
+                        <div className="truncate text-[11px] text-gray-500">{m.email}</div>
                       </div>
+
                       {isCurrent && (
-                        <IconComponent icon="mdi:check-circle" width={16} className="text-indigo-600 mt-0.5 shrink-0" />
+                        <IconComponent icon="mdi:check-circle" width={16} className="mt-0.5 shrink-0 text-indigo-600" />
                       )}
                     </div>
                   );
                 });
 
-                return list.length ? list : <div className="px-3 py-2 text-gray-500 text-xs">No users found</div>;
+                return list.length ? list : <div className="px-3 py-2 text-xs text-gray-500">No users found</div>;
               })()}
             </div>
           </div>,

@@ -11,16 +11,22 @@ import Modal from "@/components/ui/Modal";
 import Tooltip from "@/components/ui/Tooltip";
 import TextInput from "@/components/form/TextInput";
 import token from "@/lib/utilities";
+import { getStatusColor, getSourceColor, getCampaignColor } from "@/utils/leadColors";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
 const initialsFromName = (first, last) => {
   try {
     if (first && last) return (first[0] + last[0]).toUpperCase();
+
     const name = first || last || "";
+
     if (!name) return "U";
+
     const parts = name.split(/[ ,\.]+/).filter(Boolean);
+
     if (parts.length > 1) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+
     return name.substring(0, 2).toUpperCase();
   } catch {
     return "U";
@@ -29,12 +35,15 @@ const initialsFromName = (first, last) => {
 
 const parseNoteDateTimeValue = (value) => {
   if (!value) return null;
+
   const d = new Date(value);
+
   return Number.isNaN(d.getTime()) ? null : d;
 };
 
 const formatSelectedNoteDateTime = (value) => {
   if (!value) return "";
+
   try {
     return new Date(value).toLocaleString();
   } catch {
@@ -63,6 +72,7 @@ NoteDateTimeTrigger.displayName = "NoteDateTimeTrigger";
 
 const formatDateTime = (value) => {
   if (!value) return "N/A";
+
   try {
     return new Date(value).toLocaleString();
   } catch {
@@ -72,9 +82,11 @@ const formatDateTime = (value) => {
 
 const getLatestAssignment = (lead) => {
   const assignments = Array.isArray(lead?.LeadAssignments) ? [...lead.LeadAssignments] : [];
+
   if (!assignments.length) return null;
 
   assignments.sort((a, b) => new Date(b.assigned_at).getTime() - new Date(a.assigned_at).getTime());
+
   return assignments[0];
 };
 
@@ -110,6 +122,7 @@ const ConfirmDeleteNoteModal = ({ isOpen, note, onCancel, onConfirm }) => {
           <div className="w-fit">
             <GrayButton text="Cancel" onClick={onCancel} />
           </div>
+
           <div className="w-fit">
             <AccentButton text="Delete" onClick={onConfirm} customClass="!bg-red-600 hover:!bg-red-700" />
           </div>
@@ -160,6 +173,7 @@ const LeadDetailsModal = ({
   }, [orderedLeadIds, leadId]);
 
   const prevLeadId = currentIndex > 0 ? orderedLeadIds[currentIndex - 1] : null;
+
   const nextLeadId =
     currentIndex >= 0 && currentIndex < orderedLeadIds.length - 1 ? orderedLeadIds[currentIndex + 1] : null;
 
@@ -169,6 +183,7 @@ const LeadDetailsModal = ({
     if (!targetId) return;
 
     setLoading(true);
+
     try {
       const res = await API.private.getLeadById(targetId);
 
@@ -211,6 +226,7 @@ const LeadDetailsModal = ({
     };
 
     document.addEventListener("mousedown", handleOutsideClick);
+
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, [isNotePickerOpen]);
 
@@ -218,6 +234,7 @@ const LeadDetailsModal = ({
     if (!leadId) return;
 
     setSaving(true);
+
     try {
       await API.private.updateLead(leadId, data);
       Notification.success("Lead updated successfully");
@@ -240,11 +257,13 @@ const LeadDetailsModal = ({
     }
 
     setSubmittingNote(true);
+
     try {
       await API.private.updateLead(leadId, {
         notes: noteInput.trim(),
         note_datetime: noteDateTime ? noteDateTime.toISOString() : undefined,
       });
+
       Notification.success("Note added successfully");
       setNoteInput("");
       setNoteDateTime(null);
@@ -277,6 +296,7 @@ const LeadDetailsModal = ({
     }
 
     setUpdatingNote(true);
+
     try {
       await API.private.updateLeadNote(leadId, noteId, {
         body: editingNoteBody.trim(),
@@ -317,18 +337,28 @@ const LeadDetailsModal = ({
 
   const handleOpenPrev = async () => {
     if (!prevLeadId) return;
+
     await onLeadUpdated?.(prevLeadId);
   };
 
   const handleOpenNext = async () => {
     if (!nextLeadId) return;
+
     await onLeadUpdated?.(nextLeadId);
   };
 
   const initials = initialsFromName(lead?.first_name, lead?.last_name);
   const fullName = [lead?.first_name, lead?.last_name].filter(Boolean).join(" ").trim() || "Lead Details";
   const assignedTo = latestAssignment?.assignee?.full_name || latestAssignment?.assignee?.email || "Unassigned";
+
+  const statusLabel = lead?.LeadStatus?.label || "No Status";
+  const statusValue = lead?.LeadStatus?.value || "";
+
+  const sourceLabel = lead?.LeadSource?.label || "No Source";
+  const sourceValue = lead?.LeadSource?.value || "";
+
   const campaignLabel = lead?.Campaign?.label || lead?.Campaign?.value || lead?.campaign_id || "No Campaign";
+  const campaignValue = lead?.Campaign?.value || lead?.Campaign?.label || lead?.campaign_id || "";
 
   return (
     <>
@@ -349,9 +379,9 @@ const LeadDetailsModal = ({
 
                 {lead && (
                   <>
-                    <Badge text={lead.LeadStatus?.label || "No Status"} color="blue" size="sm" />
-                    <Badge text={lead.LeadSource?.label || "No Source"} color="purple" size="sm" />
-                    <Badge text={campaignLabel} color="gray" size="sm" />
+                    <Badge text={statusLabel} color={getStatusColor(statusValue)} size="sm" />
+                    <Badge text={sourceLabel} color={getSourceColor(sourceValue)} size="sm" />
+                    <Badge text={campaignLabel} color={getCampaignColor(campaignValue)} size="sm" />
                   </>
                 )}
               </div>
@@ -408,10 +438,11 @@ const LeadDetailsModal = ({
 
                     <div className="min-w-0">
                       <h3 className="break-words text-2xl font-semibold text-gray-900">{fullName}</h3>
+
                       <div className="mt-2 flex flex-wrap gap-2">
-                        <Badge text={lead.LeadStatus?.label || "No Status"} color="blue" size="sm" />
-                        <Badge text={lead.LeadSource?.label || "No Source"} color="purple" size="sm" />
-                        <Badge text={campaignLabel} color="gray" size="sm" />
+                        <Badge text={statusLabel} color={getStatusColor(statusValue)} size="sm" />
+                        <Badge text={sourceLabel} color={getSourceColor(sourceValue)} size="sm" />
+                        <Badge text={campaignLabel} color={getCampaignColor(campaignValue)} size="sm" />
                       </div>
                     </div>
                   </div>
@@ -447,16 +478,20 @@ const LeadDetailsModal = ({
                     <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10 text-accent">
                       <Icon icon="mdi:note-text-outline" width={20} />
                     </div>
+
                     <h3 className="text-xl font-semibold text-gray-900">Notes</h3>
                   </div>
                 </div>
 
-                <div className="mt-5 space-y-4 max-h-[360px] overflow-y-auto pr-2 app-scrollbar">
+                <div className="mt-5 max-h-[360px] space-y-4 overflow-y-auto pr-2 app-scrollbar">
                   {Array.isArray(lead.notes) && lead.notes.length ? (
                     lead.notes.map((note) => {
-                      const fullName = note.author?.full_name || "Unknown";
-                      const parts = fullName.split(" ").filter(Boolean);
-                      const authorInitials = initialsFromName(parts[0] || fullName, parts[parts.length - 1] || "");
+                      const noteAuthorName = note.author?.full_name || "Unknown";
+                      const parts = noteAuthorName.split(" ").filter(Boolean);
+                      const authorInitials = initialsFromName(
+                        parts[0] || noteAuthorName,
+                        parts[parts.length - 1] || "",
+                      );
 
                       return (
                         <div
@@ -480,14 +515,15 @@ const LeadDetailsModal = ({
                                     />
 
                                     <div className="mt-2 text-xs text-gray-500">
-                                      by {fullName} · {formatDateTime(note.created_at)}
+                                      by {noteAuthorName} · {formatDateTime(note.created_at)}
                                     </div>
                                   </div>
                                 ) : (
                                   <>
                                     <p className="break-words text-sm leading-relaxed text-gray-800">{note.body}</p>
+
                                     <div className="mt-2 text-xs text-gray-500">
-                                      by {fullName} · {formatDateTime(note.created_at)}
+                                      by {noteAuthorName} · {formatDateTime(note.created_at)}
                                     </div>
                                   </>
                                 )}
@@ -621,6 +657,7 @@ const LeadDetailsModal = ({
                         disabled={submittingNote}
                       />
                     </div>
+
                     <div className="w-fit">
                       <AccentButton text="Add Note" onClick={handleAddNote} loading={submittingNote} />
                     </div>

@@ -40,11 +40,34 @@ export const RANDOM_SOURCE_COLORS = [
   "slate",
 ];
 
+export const CAMPAIGN_COLOR_MAP = {};
+
+export const RANDOM_CAMPAIGN_COLORS = [
+  "emerald",
+  "cyan",
+  "amber",
+  "rose",
+  "violet",
+  "fuchsia",
+  "sky",
+  "lime",
+  "indigo",
+  "purple",
+  "teal",
+  "orange",
+  "blue",
+  "green",
+  "pink",
+  "yellow",
+  "slate",
+  "gray",
+];
+
 export const normalizeColorValue = (value = "") => {
   return String(value).trim().toLowerCase().replace(/\s+/g, "_").replace(/-+/g, "_");
 };
 
-export const getDeterministicColorIndex = (value = "") => {
+export const getDeterministicColorIndex = (value = "", colors = RANDOM_SOURCE_COLORS) => {
   const normalized = normalizeColorValue(value);
 
   if (!normalized) {
@@ -58,7 +81,7 @@ export const getDeterministicColorIndex = (value = "") => {
     hash = hash & hash;
   }
 
-  return Math.abs(hash) % RANDOM_SOURCE_COLORS.length;
+  return Math.abs(hash) % colors.length;
 };
 
 export const getStatusColor = (statusValue = "") => {
@@ -74,7 +97,19 @@ export const getSourceColor = (sourceValue = "") => {
     return SOURCE_COLOR_MAP[v];
   }
 
-  const colorIndex = getDeterministicColorIndex(v);
+  const colorIndex = getDeterministicColorIndex(v, RANDOM_SOURCE_COLORS);
 
   return RANDOM_SOURCE_COLORS[colorIndex] || "gray";
+};
+
+export const getCampaignColor = (campaignValue = "") => {
+  const v = normalizeColorValue(campaignValue);
+
+  if (CAMPAIGN_COLOR_MAP[v]) {
+    return CAMPAIGN_COLOR_MAP[v];
+  }
+
+  const colorIndex = getDeterministicColorIndex(v, RANDOM_CAMPAIGN_COLORS);
+
+  return RANDOM_CAMPAIGN_COLORS[colorIndex] || "gray";
 };
