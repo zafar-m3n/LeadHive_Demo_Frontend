@@ -59,7 +59,7 @@ const RegisterPage = () => {
       if (res.data.code === "OK") {
         Notification.success(res.data.data?.message || "Registration successful!");
         reset();
-        navigate("/login");
+        // navigate("/login");
       } else {
         Notification.error(res.data.error || "Unexpected response from server.");
       }

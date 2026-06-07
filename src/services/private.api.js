@@ -526,6 +526,26 @@ const getReports = async (params = {}) => {
 };
 
 /* ========================== */
+/* Notification Functions     */
+/* ========================== */
+
+const getNotifications = async () => {
+  return await instance.apiClient.get("/api/v1/notifications", {
+    headers: instance.defaultHeaders(),
+  });
+};
+
+const markNotificationAsRead = async (id) => {
+  return await instance.apiClient.patch(
+    `/api/v1/notifications/${id}/read`,
+    {},
+    {
+      headers: instance.defaultHeaders(),
+    },
+  );
+};
+
+/* ========================== */
 /* Export API                 */
 /* ========================== */
 
@@ -616,6 +636,9 @@ const privateAPI = {
 
   getReportAgents,
   getReports,
+
+  getNotifications,
+  markNotificationAsRead,
 };
 
 export default privateAPI;
