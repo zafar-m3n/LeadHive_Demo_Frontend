@@ -1,3 +1,6 @@
+// LeadsTable.jsx
+// Full component with updated Lead Details layout.
+
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import ReactDOM from "react-dom";
 import Badge from "@/components/ui/Badge";
@@ -16,7 +19,7 @@ const ROLE = {
   SALES_REP: 3,
 };
 
-const LeadsTable = ({
+function LeadsTable({
   leads,
   onEdit,
   onDelete,
@@ -24,25 +27,16 @@ const LeadsTable = ({
   onAssignOptionClick,
   mode = "manager",
   selfId = null,
-
-  // Inline status edit
   statuses = [],
-  onStatusUpdate, // (lead, statusOption) => Promise | void
-
-  // Bulk selection
+  onStatusUpdate,
   showSelection = false,
   selectedIds = [],
   onToggleSelect = () => {},
   onToggleSelectAll = () => {},
-
-  // Sorting from parent
   orderBy = "",
   orderDir = "ASC",
   onSortClick = () => {},
-}) => {
-  // -------------------------
-  // Assignee dropdown state
-  // -------------------------
+}) {
   const [dropdownOpen, setDropdownOpen] = useState(null);
   const [openLead, setOpenLead] = useState(null);
   const [dropdownPos, setDropdownPos] = useState({
@@ -54,9 +48,6 @@ const LeadsTable = ({
   });
   const [assigneeQuery, setAssigneeQuery] = useState("");
 
-  // -------------------------
-  // Status dropdown state
-  // -------------------------
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(null);
   const [openLeadStatus, setOpenLeadStatus] = useState(null);
   const [statusDropdownPos, setStatusDropdownPos] = useState({
@@ -67,9 +58,68 @@ const LeadsTable = ({
     maxHeight: BASE_MAX_HEIGHT,
   });
 
-  // =========================
-  // Helpers
-  // =========================
+  const getLeadId = useCallback((lead) => {
+    return lead?.id ?? lead?.lead_id ?? null;
+  }, []);
+
+  const getLeadName = useCallback((lead) => {
+    if (lead?.name) return lead.name;
+
+    const firstName = lead?.first_name || "";
+    const lastName = lead?.last_name || "";
+    const fullName = `${firstName} ${lastName}`.trim();
+
+    return fullName || "-";
+  }, []);
+
+  const getLeadStatus = useCallback((lead) => {
+    return lead?.status || lead?.LeadStatus || null;
+  }, []);
+
+  const getLeadSource = useCallback((lead) => {
+    return lead?.source || lead?.LeadSource || null;
+  }, []);
+
+  const getLeadCampaign = useCallback((lead) => {
+    return lead?.campaign || lead?.Campaign || null;
+  }, []);
+
+  const getLatestNote = useCallback((lead) => {
+    if (lead?.latest_note) return lead.latest_note;
+
+    if (Array.isArray(lead?.notes) && lead.notes.length > 0) {
+      return lead.notes[0];
+    }
+
+    return null;
+  }, []);
+
+  const getLatestAssignment = useCallback((lead) => {
+    if (lead?.assignee) {
+      return { assignee: lead.assignee };
+    }
+
+    const arr = lead?.LeadAssignments || [];
+
+    if (!arr.length) return null;
+
+    return [...arr].sort((a, b) => new Date(b.assigned_at) - new Date(a.assigned_at))[0] || null;
+  }, []);
+
+  const getCurrentAssignee = useCallback(
+    (lead) => {
+      return lead?.assignee || getLatestAssignment(lead)?.assignee || null;
+    },
+    [getLatestAssignment],
+  );
+
+  const getCurrentAssigneeName = useCallback(
+    (lead) => {
+      return getCurrentAssignee(lead)?.full_name || "-";
+    },
+    [getCurrentAssignee],
+  );
+
   const normStatus = useCallback((s) => {
     if (!s) return null;
 
@@ -81,15 +131,19 @@ const LeadsTable = ({
     };
   }, []);
 
-  const sameStatusById = useCallback((lead, s) => {
-    const sid = s?.id;
+  const sameStatusById = useCallback(
+    (lead, s) => {
+      const sid = s?.id;
 
-    if (!lead || !sid) return false;
+      if (!lead || !sid) return false;
 
-    const currentId = lead?.LeadStatus?.id ?? lead?.status_id;
+      const currentStatus = getLeadStatus(lead);
+      const currentId = currentStatus?.id ?? lead?.status_id;
 
-    return Number(currentId) === Number(sid);
-  }, []);
+      return Number(currentId) === Number(sid);
+    },
+    [getLeadStatus],
+  );
 
   const isSortedBy = useCallback((field) => String(orderBy || "") === String(field || ""), [orderBy]);
 
@@ -119,79 +173,7 @@ const LeadsTable = ({
     setOpenLeadStatus(null);
   }, []);
 
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      const isAssignee = e.target.closest(".assignee-trigger") || e.target.closest(".assignee-portal-dropdown");
-      const isStatus = e.target.closest(".status-trigger") || e.target.closest(".status-portal-dropdown");
-
-      if (!isAssignee) closeAssigneeDropdown();
-      if (!isStatus) closeStatusDropdown();
-    };
-
-    const handleEsc = (e) => {
-      if (e.key === "Escape") {
-        closeAssigneeDropdown();
-        closeStatusDropdown();
-      }
-    };
-
-    document.addEventListener("click", handleClickOutside);
-    document.addEventListener("keydown", handleEsc);
-
-    return () => {
-      document.removeEventListener("click", handleClickOutside);
-      document.removeEventListener("keydown", handleEsc);
-    };
-  }, [closeAssigneeDropdown, closeStatusDropdown]);
-
-  useEffect(() => {
-    if (dropdownOpen && !leads.some((l) => l.id === dropdownOpen)) closeAssigneeDropdown();
-    if (statusDropdownOpen && !leads.some((l) => l.id === statusDropdownOpen)) closeStatusDropdown();
-  }, [leads, dropdownOpen, statusDropdownOpen, closeAssigneeDropdown, closeStatusDropdown]);
-
-  useEffect(() => {
-    if (!dropdownOpen) return;
-
-    const updatePos = () => {
-      const trigger = document.querySelector(`[data-assignee-trigger="${dropdownOpen}"]`);
-
-      if (!trigger) return;
-
-      const rect = trigger.getBoundingClientRect();
-      computeAndSetPosition(rect, setDropdownPos);
-    };
-
-    window.addEventListener("scroll", updatePos, true);
-    window.addEventListener("resize", updatePos);
-
-    return () => {
-      window.removeEventListener("scroll", updatePos, true);
-      window.removeEventListener("resize", updatePos);
-    };
-  }, [dropdownOpen]);
-
-  useEffect(() => {
-    if (!statusDropdownOpen) return;
-
-    const updatePos = () => {
-      const trigger = document.querySelector(`[data-status-trigger="${statusDropdownOpen}"]`);
-
-      if (!trigger) return;
-
-      const rect = trigger.getBoundingClientRect();
-      computeAndSetPosition(rect, setStatusDropdownPos);
-    };
-
-    window.addEventListener("scroll", updatePos, true);
-    window.addEventListener("resize", updatePos);
-
-    return () => {
-      window.removeEventListener("scroll", updatePos, true);
-      window.removeEventListener("resize", updatePos);
-    };
-  }, [statusDropdownOpen]);
-
-  const computeAndSetPosition = (rect, setter) => {
+  const computeAndSetPosition = useCallback((rect, setter) => {
     const vw = window.innerWidth;
     const vh = window.innerHeight;
 
@@ -228,54 +210,120 @@ const LeadsTable = ({
       alignRight: overflowRight,
       maxHeight: maxAvailable,
     });
-  };
+  }, []);
 
-  const getLatestAssignment = (lead) => {
-    const arr = lead?.LeadAssignments || [];
+  const toggleAssigneeDropdown = useCallback(
+    (lead, e) => {
+      const leadId = getLeadId(lead);
+      const rect = e.currentTarget.getBoundingClientRect();
 
-    if (!arr.length) return null;
-
-    const latest = [...arr].sort((a, b) => new Date(b.assigned_at) - new Date(a.assigned_at))[0];
-
-    return latest || null;
-  };
-
-  const getCurrentAssignee = (lead) => getLatestAssignment(lead)?.assignee || null;
-
-  const getCurrentAssigneeName = (lead) => getCurrentAssignee(lead)?.full_name || "-";
-
-  const toggleAssigneeDropdown = (lead, e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-
-    closeStatusDropdown();
-
-    if (dropdownOpen === lead.id) {
-      closeAssigneeDropdown();
-    } else {
-      computeAndSetPosition(rect, setDropdownPos);
-      setDropdownOpen(lead.id);
-      setOpenLead(lead);
-      setAssigneeQuery("");
-    }
-  };
-
-  const toggleStatusDropdown = (lead, e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-
-    closeAssigneeDropdown();
-
-    if (statusDropdownOpen === lead.id) {
       closeStatusDropdown();
-    } else {
-      computeAndSetPosition(rect, setStatusDropdownPos);
-      setStatusDropdownOpen(lead.id);
-      setOpenLeadStatus(lead);
-    }
-  };
 
-  // =========================
-  // Assignment targets
-  // =========================
+      if (dropdownOpen === leadId) {
+        closeAssigneeDropdown();
+      } else {
+        computeAndSetPosition(rect, setDropdownPos);
+        setDropdownOpen(leadId);
+        setOpenLead(lead);
+        setAssigneeQuery("");
+      }
+    },
+    [closeAssigneeDropdown, closeStatusDropdown, computeAndSetPosition, dropdownOpen, getLeadId],
+  );
+
+  const toggleStatusDropdown = useCallback(
+    (lead, e) => {
+      const leadId = getLeadId(lead);
+      const rect = e.currentTarget.getBoundingClientRect();
+
+      closeAssigneeDropdown();
+
+      if (statusDropdownOpen === leadId) {
+        closeStatusDropdown();
+      } else {
+        computeAndSetPosition(rect, setStatusDropdownPos);
+        setStatusDropdownOpen(leadId);
+        setOpenLeadStatus(lead);
+      }
+    },
+    [closeAssigneeDropdown, closeStatusDropdown, computeAndSetPosition, getLeadId, statusDropdownOpen],
+  );
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      const isAssignee = e.target.closest(".assignee-trigger") || e.target.closest(".assignee-portal-dropdown");
+      const isStatus = e.target.closest(".status-trigger") || e.target.closest(".status-portal-dropdown");
+
+      if (!isAssignee) closeAssigneeDropdown();
+      if (!isStatus) closeStatusDropdown();
+    }
+
+    function handleEsc(e) {
+      if (e.key === "Escape") {
+        closeAssigneeDropdown();
+        closeStatusDropdown();
+      }
+    }
+
+    document.addEventListener("click", handleClickOutside);
+    document.addEventListener("keydown", handleEsc);
+
+    return () => {
+      document.removeEventListener("click", handleClickOutside);
+      document.removeEventListener("keydown", handleEsc);
+    };
+  }, [closeAssigneeDropdown, closeStatusDropdown]);
+
+  useEffect(() => {
+    if (dropdownOpen && !leads.some((l) => getLeadId(l) === dropdownOpen)) {
+      closeAssigneeDropdown();
+    }
+
+    if (statusDropdownOpen && !leads.some((l) => getLeadId(l) === statusDropdownOpen)) {
+      closeStatusDropdown();
+    }
+  }, [leads, dropdownOpen, statusDropdownOpen, closeAssigneeDropdown, closeStatusDropdown, getLeadId]);
+
+  useEffect(() => {
+    if (!dropdownOpen) return;
+
+    function updatePos() {
+      const trigger = document.querySelector(`[data-assignee-trigger="${dropdownOpen}"]`);
+
+      if (!trigger) return;
+
+      computeAndSetPosition(trigger.getBoundingClientRect(), setDropdownPos);
+    }
+
+    window.addEventListener("scroll", updatePos, true);
+    window.addEventListener("resize", updatePos);
+
+    return () => {
+      window.removeEventListener("scroll", updatePos, true);
+      window.removeEventListener("resize", updatePos);
+    };
+  }, [dropdownOpen, computeAndSetPosition]);
+
+  useEffect(() => {
+    if (!statusDropdownOpen) return;
+
+    function updatePos() {
+      const trigger = document.querySelector(`[data-status-trigger="${statusDropdownOpen}"]`);
+
+      if (!trigger) return;
+
+      computeAndSetPosition(trigger.getBoundingClientRect(), setStatusDropdownPos);
+    }
+
+    window.addEventListener("scroll", updatePos, true);
+    window.addEventListener("resize", updatePos);
+
+    return () => {
+      window.removeEventListener("scroll", updatePos, true);
+      window.removeEventListener("resize", updatePos);
+    };
+  }, [statusDropdownOpen, computeAndSetPosition]);
+
   const teamSet = useMemo(
     () => new Set((managers || []).filter((u) => Number(u.role_id) !== ROLE.ADMIN).map((u) => u.id)),
     [managers],
@@ -283,64 +331,63 @@ const LeadsTable = ({
 
   const dropdownTargets = useMemo(() => managers || [], [managers]);
 
-  // =========================
-  // Permissions
-  // =========================
-  const canReassign = (lead) => {
-    if (mode === "admin") return true;
+  const canReassign = useCallback(
+    (lead) => {
+      if (mode === "admin") return true;
 
-    const current = getCurrentAssignee(lead);
+      const current = getCurrentAssignee(lead);
 
-    if (!current) return false;
+      if (!current) return false;
 
-    if (mode === "manager") {
-      return teamSet.has(current.id);
-    }
+      if (mode === "manager") return teamSet.has(current.id);
 
-    if (mode === "sales") {
-      if (!selfId) return false;
+      if (mode === "sales") {
+        if (!selfId) return false;
 
-      return Number(current.role_id) === ROLE.SALES_REP && Number(current.id) === Number(selfId);
-    }
+        return Number(current.role_id) === ROLE.SALES_REP && Number(current.id) === Number(selfId);
+      }
 
-    return false;
-  };
+      return false;
+    },
+    [getCurrentAssignee, mode, selfId, teamSet],
+  );
 
-  const canEditStatus = () => true;
+  const canEditStatus = useCallback(() => true, []);
 
   const filteredAssigneeTargets = useMemo(() => {
     const q = assigneeQuery.trim().toLowerCase();
 
     if (!q) return dropdownTargets;
 
-    return dropdownTargets.filter(
-      (m) => (m.full_name && m.full_name.toLowerCase().includes(q)) || (m.email && m.email.toLowerCase().includes(q)),
-    );
+    return dropdownTargets.filter((m) => {
+      const nameMatch = m.full_name && m.full_name.toLowerCase().includes(q);
+      const emailMatch = m.email && m.email.toLowerCase().includes(q);
+
+      return nameMatch || emailMatch;
+    });
   }, [assigneeQuery, dropdownTargets]);
 
-  // Fixed widths
   const W_SELECT = "w-[46px]";
-  const W_LEAD = "w-[175px]";
-  const W_COMPANY = "w-[120px]";
-  const W_PHONE = "w-[100px]";
-  const W_DETAILS = "w-[230px]";
-  const W_ASSIGNEE = "w-[175px]";
-  const W_DATE = "w-[170px]";
+  const W_LEAD = "w-[200px] min-w-[200px]";
+  const W_PHONE = "w-[145px] min-w-[145px]";
+  const W_DETAILS = "w-[240px] min-w-[240px]";
+  const W_DATE = "w-[150px] min-w-[150px]";
+  const W_ASSIGNEE = "w-[200px] min-w-[200px]";
+  const W_NOTE = "min-w-[300px] w-[300px]";
 
-  const allOnPageChecked = showSelection && leads.length > 0 && leads.every((l) => selectedIds.includes(l.id));
+  const allOnPageChecked = showSelection && leads.length > 0 && leads.every((l) => selectedIds.includes(getLeadId(l)));
 
   const someOnPageChecked =
-    showSelection && leads.length > 0 && leads.some((l) => selectedIds.includes(l.id)) && !allOnPageChecked;
+    showSelection && leads.length > 0 && leads.some((l) => selectedIds.includes(getLeadId(l))) && !allOnPageChecked;
 
   const showAssigneeCol = mode !== "sales";
   const showActionsCol = mode === "admin" || mode === "manager";
 
-  const colsCount =
-    (showSelection ? 1 : 0) + 1 + 1 + 1 + 1 + 1 + 1 + (showAssigneeCol ? 1 : 0) + (showActionsCol ? 1 : 0);
+  const colsCount = (showSelection ? 1 : 0) + 1 + 1 + 1 + 1 + (showAssigneeCol ? 1 : 0) + 1 + (showActionsCol ? 1 : 0);
 
   return (
     <div className="relative w-full overflow-x-auto rounded-lg border border-gray-200">
-      <table className="w-full table-auto text-sm leading-[1.25rem]">
+      <table className="w-full min-w-[1350px] table-fixed text-sm leading-[1.25rem]">
         <thead className="bg-accent/20 uppercase tracking-wider">
           <tr className="text-[11px] font-semibold text-gray-800">
             {showSelection && (
@@ -357,13 +404,7 @@ const LeadsTable = ({
 
                   <span
                     data-indeterminate={someOnPageChecked ? "true" : undefined}
-                    className="relative inline-flex h-4 w-4 items-center justify-center rounded border border-gray-300 bg-white shadow-sm
-                      transition-colors duration-200 ease-in-out
-                      after:absolute after:left-1/2 after:top-1/2 after:h-0.5 after:w-2 after:-translate-x-1/2 after:-translate-y-1/2
-                      after:rounded-sm after:bg-white after:opacity-0
-                      peer-checked:border-indigo-500 peer-checked:bg-indigo-500
-                      peer-focus-visible:ring-2 peer-focus-visible:ring-indigo-300
-                      data-[indeterminate=true]:after:opacity-100"
+                    className="relative inline-flex h-4 w-4 items-center justify-center rounded border border-gray-300 bg-white shadow-sm transition-colors duration-200 ease-in-out after:absolute after:left-1/2 after:top-1/2 after:h-0.5 after:w-2 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-sm after:bg-white after:opacity-0 peer-checked:border-indigo-500 peer-checked:bg-indigo-500 peer-focus-visible:ring-2 peer-focus-visible:ring-indigo-300 data-[indeterminate=true]:after:opacity-100"
                   >
                     <svg
                       className="pointer-events-none h-3 w-3 text-white opacity-0 transition-opacity duration-200 ease-in-out peer-checked:opacity-100"
@@ -382,24 +423,25 @@ const LeadsTable = ({
             )}
 
             <th className={`px-3 py-2 text-left font-semibold ${W_LEAD}`}>Lead</th>
-            <th className={`px-3 py-2 text-left font-semibold ${W_COMPANY}`}>Company</th>
-            <th className={`hidden px-3 py-2 text-left font-semibold md:table-cell ${W_PHONE}`}>Phone</th>
+            <th className={`px-3 py-2 text-left font-semibold ${W_PHONE}`}>Phone</th>
             <th className={`px-3 py-2 text-left font-semibold ${W_DETAILS}`}>Lead Details</th>
-            <th className={`px-3 py-2 text-left font-semibold ${W_DATE}`}>Created</th>
 
             <th className={`px-3 py-2 text-left font-semibold ${W_DATE}`}>
               <button
                 type="button"
-                onClick={() => onSortClick("updated_at")}
+                onClick={() => onSortClick("last_contacted_at")}
                 className="inline-flex items-center gap-1 text-left uppercase tracking-wider transition hover:text-indigo-700"
-                aria-label={`Sort by Last Contacted ${isSortedBy("updated_at") ? `currently ${orderDir}` : ""}`}
+                aria-label={`Sort by Last Contacted ${isSortedBy("last_contacted_at") ? `currently ${orderDir}` : ""}`}
               >
                 <span>Last Contacted</span>
-                {renderSortIcon("updated_at")}
+                {renderSortIcon("last_contacted_at")}
               </button>
             </th>
 
             {showAssigneeCol && <th className={`px-3 py-2 text-left font-semibold ${W_ASSIGNEE}`}>Assignee</th>}
+
+            <th className={`px-3 py-2 text-left font-semibold ${W_NOTE}`}>Latest Note</th>
+
             {showActionsCol && <th className="px-3 py-2 text-left font-semibold">Actions</th>}
           </tr>
         </thead>
@@ -413,29 +455,36 @@ const LeadsTable = ({
             </tr>
           ) : (
             leads.map((row) => {
-              const fullName = `${row.first_name || ""} ${row.last_name || ""}`.trim() || "-";
-              const statusLabel = row.LeadStatus?.label || "-";
-              const statusValue = row.LeadStatus?.value || "";
-              const sourceLabel = row.LeadSource?.label || "-";
-              const sourceValue = row.LeadSource?.value || "";
-              const campaignLabel = row.Campaign?.label || row.Campaign?.value || row.campaign_id || "-";
-              const campaignValue = row.Campaign?.value || row.Campaign?.label || row.campaign_id || "";
+              const leadId = getLeadId(row);
+              const fullName = getLeadName(row);
+
+              const status = getLeadStatus(row);
+              const statusLabel = status?.label || "-";
+              const statusValue = status?.value || "";
+
+              const source = getLeadSource(row);
+              const sourceLabel = source?.label || "-";
+              const sourceValue = source?.value || "";
+
+              const campaign = getLeadCampaign(row);
+              const campaignLabel = campaign?.label || campaign?.value || "-";
+              const campaignValue = campaign?.value || campaign?.label || "";
+
+              const latestNote = getLatestNote(row);
+              const latestNoteBody = latestNote?.body || "";
+
               const phone = row.phone && row.phone.length > 4 ? row.phone : "N/A";
               const assigneeName = getCurrentAssigneeName(row);
-              const created = formatDate(row.created_at);
-              const lastContacted =
-                row.created_at &&
-                row.updated_at &&
-                new Date(row.created_at).getTime() === new Date(row.updated_at).getTime()
-                  ? "Not contacted yet"
-                  : formatDate(row.updated_at);
+
+              const lastContactedValue = row.last_contacted || row.last_contacted_at || null;
+              const lastContacted = lastContactedValue ? formatDate(lastContactedValue) : "Not contacted yet";
 
               const reassignable = canReassign(row);
-              const isChecked = selectedIds.includes(row.id);
+              const isChecked = selectedIds.includes(leadId);
               const canEditThisStatus = canEditStatus(row) && Array.isArray(statuses) && statuses.length > 0;
 
               return (
-                <tr key={row.id} className="border-t border-gray-100 hover:bg-gray-50/70">
+                <tr key={leadId} className="border-t border-gray-100 hover:bg-gray-50/70">
                   {showSelection && (
                     <td className={`px-2 py-2 align-top ${W_SELECT}`}>
                       <label className="inline-flex cursor-pointer select-none items-center gap-2">
@@ -443,15 +492,11 @@ const LeadsTable = ({
                           type="checkbox"
                           className="peer sr-only"
                           checked={isChecked}
-                          onChange={() => onToggleSelect(row.id)}
-                          aria-label={`Select lead ${row.id}`}
+                          onChange={() => onToggleSelect(leadId)}
+                          aria-label={`Select lead ${leadId}`}
                         />
 
-                        <span
-                          className="relative inline-flex h-4 w-4 items-center justify-center rounded border border-gray-300 bg-white shadow-sm
-                            transition-colors duration-200 ease-in-out peer-checked:border-indigo-500 peer-checked:bg-indigo-500
-                            peer-focus-visible:ring-2 peer-focus-visible:ring-indigo-300"
-                        >
+                        <span className="relative inline-flex h-4 w-4 items-center justify-center rounded border border-gray-300 bg-white shadow-sm transition-colors duration-200 ease-in-out peer-checked:border-indigo-500 peer-checked:bg-indigo-500 peer-focus-visible:ring-2 peer-focus-visible:ring-indigo-300">
                           <svg
                             className="pointer-events-none h-3 w-3 text-white opacity-0 transition-opacity duration-200 ease-in-out peer-checked:opacity-100"
                             viewBox="0 0 24 24"
@@ -468,74 +513,72 @@ const LeadsTable = ({
                     </td>
                   )}
 
-                  <td className="px-3 py-2 align-top">
+                  <td className={`px-3 py-2 align-top ${W_LEAD}`}>
                     <button
                       type="button"
                       onClick={() => onEdit && onEdit(row)}
-                      className={`group flex flex-col overflow-hidden text-left ${W_LEAD}`}
+                      className="group flex w-full min-w-0 flex-col overflow-hidden text-left"
                       aria-label={`Open details for ${fullName}`}
                     >
-                      <span className="truncate font-medium text-gray-900 group-hover:underline">{fullName}</span>
-                      <span className="truncate text-xs text-gray-600 group-hover:underline">{row.email || "-"}</span>
+                      <span className="truncate whitespace-nowrap font-medium text-gray-900 group-hover:underline">
+                        {fullName}
+                      </span>
+                      <span className="truncate whitespace-nowrap text-xs text-gray-600 group-hover:underline">
+                        {row.email || "-"}
+                      </span>
                     </button>
                   </td>
 
-                  <td className="px-3 py-2 align-top">
-                    <div className={`overflow-hidden ${W_COMPANY}`}>
-                      <span className="block truncate">{row.company || "-"}</span>
-                    </div>
-                  </td>
-
-                  <td className={`hidden whitespace-nowrap px-3 py-2 align-top md:table-cell ${W_PHONE}`}>
-                    <div className="overflow-hidden">
-                      <span className="block truncate">{phone}</span>
-                    </div>
+                  <td className={`px-3 py-2 align-top ${W_PHONE}`}>
+                    <span className="block truncate whitespace-nowrap text-gray-800">{phone}</span>
                   </td>
 
                   <td className={`px-3 py-2 align-top ${W_DETAILS}`}>
-                    <div className="flex flex-col items-start gap-1.5">
-                      {canEditThisStatus ? (
-                        <Tooltip content="Change status" placement="top" theme="light">
-                          <button
-                            data-status-trigger={row.id}
-                            onClick={(e) => toggleStatusDropdown(row, e)}
-                            className="status-trigger inline-flex items-center gap-1 text-gray-800 hover:text-black"
-                            aria-label="Change status"
-                          >
-                            <Badge text={statusLabel} color={getStatusColor(statusValue)} size="sm" rounded="rounded" />
+                    <div className="flex min-w-0 flex-col gap-1.5">
+                      <div className="flex min-w-0 items-center whitespace-nowrap">
+                        {canEditThisStatus ? (
+                          <Tooltip content="Change status" placement="top" theme="light">
+                            <button
+                              data-status-trigger={leadId}
+                              onClick={(e) => toggleStatusDropdown(row, e)}
+                              className="status-trigger inline-flex max-w-full items-center gap-1 overflow-hidden text-gray-800 hover:text-black"
+                              aria-label="Change status"
+                            >
+                              <Badge
+                                text={statusLabel}
+                                color={getStatusColor(statusValue)}
+                                size="sm"
+                                rounded="rounded"
+                              />
 
-                            <IconComponent
-                              icon="mdi:chevron-down"
-                              width={18}
-                              className={`shrink-0 transition-transform duration-200 ${
-                                statusDropdownOpen === row.id ? "rotate-180" : ""
-                              }`}
-                            />
-                          </button>
-                        </Tooltip>
-                      ) : (
-                        <Badge text={statusLabel} color={getStatusColor(statusValue)} size="sm" rounded="rounded" />
-                      )}
+                              <IconComponent
+                                icon="mdi:chevron-down"
+                                width={18}
+                                className={`shrink-0 transition-transform duration-200 ${
+                                  statusDropdownOpen === leadId ? "rotate-180" : ""
+                                }`}
+                              />
+                            </button>
+                          </Tooltip>
+                        ) : (
+                          <Badge text={statusLabel} color={getStatusColor(statusValue)} size="sm" rounded="rounded" />
+                        )}
+                      </div>
 
-                      <div className="flex max-w-full flex-wrap items-center gap-1.5">
-                        <Badge text={sourceLabel} color={getSourceColor(sourceValue)} size="sm" rounded="rounded" />
-
+                      <div className="flex min-w-0 flex-nowrap items-center gap-1.5 whitespace-nowrap">
                         <Badge
                           text={campaignLabel}
                           color={getCampaignColor(campaignValue)}
                           size="sm"
                           rounded="rounded"
                         />
+                        <Badge text={sourceLabel} color={getSourceColor(sourceValue)} size="sm" rounded="rounded" />
                       </div>
                     </div>
                   </td>
 
                   <td className={`px-3 py-2 align-top ${W_DATE}`}>
-                    <span className="text-gray-800">{created}</span>
-                  </td>
-
-                  <td className={`px-3 py-2 align-top ${W_DATE}`}>
-                    <span className="text-gray-800">{lastContacted}</span>
+                    <span className="truncate whitespace-nowrap text-gray-800">{lastContacted}</span>
                   </td>
 
                   {showAssigneeCol && (
@@ -543,29 +586,37 @@ const LeadsTable = ({
                       {reassignable ? (
                         <Tooltip content="Change assignee" placement="top" theme="light">
                           <button
-                            data-assignee-trigger={row.id}
+                            data-assignee-trigger={leadId}
                             onClick={(e) => toggleAssigneeDropdown(row, e)}
-                            className="assignee-trigger flex items-center gap-1 overflow-hidden text-gray-800 hover:text-black"
+                            className="assignee-trigger flex max-w-full items-center gap-1 overflow-hidden text-gray-800 hover:text-black"
                             aria-label="Change assignee"
                           >
-                            <span className="truncate">{assigneeName}</span>
+                            <span className="truncate whitespace-nowrap">{assigneeName}</span>
 
                             <IconComponent
                               icon="mdi:chevron-down"
                               width={18}
                               className={`shrink-0 transition-transform duration-200 ${
-                                dropdownOpen === row.id ? "rotate-180" : ""
+                                dropdownOpen === leadId ? "rotate-180" : ""
                               }`}
                             />
                           </button>
                         </Tooltip>
                       ) : (
                         <div className="flex items-center gap-1 overflow-hidden text-gray-500">
-                          <span className="truncate">{assigneeName}</span>
+                          <span className="truncate whitespace-nowrap">{assigneeName}</span>
                         </div>
                       )}
                     </td>
                   )}
+
+                  <td className={`px-3 py-2 align-top ${W_NOTE}`}>
+                    {latestNoteBody ? (
+                      <span className="block whitespace-pre-wrap break-words text-gray-800">{latestNoteBody}</span>
+                    ) : (
+                      <span className="text-gray-400">No note</span>
+                    )}
+                  </td>
 
                   {showActionsCol && (
                     <td className="px-3 py-2 align-top">
@@ -599,7 +650,11 @@ const LeadsTable = ({
                 ? "visible scale-100 opacity-100 pointer-events-auto"
                 : "invisible scale-95 opacity-0 pointer-events-none"
             } ${statusDropdownPos.placeAbove ? "origin-bottom -translate-y-full" : "origin-top"}`}
-            style={{ top: statusDropdownPos.top, left: statusDropdownPos.left, width: `${MENU_WIDTH}px` }}
+            style={{
+              top: statusDropdownPos.top,
+              left: statusDropdownPos.left,
+              width: `${MENU_WIDTH}px`,
+            }}
             role="listbox"
             aria-hidden={!statusDropdownOpen}
           >
@@ -621,7 +676,11 @@ const LeadsTable = ({
                       closeStatusDropdown();
 
                       if (lead && onStatusUpdate) {
-                        await onStatusUpdate(lead, { id: s.id, label: s.label, value: s.value });
+                        await onStatusUpdate(lead, {
+                          id: s.id,
+                          label: s.label,
+                          value: s.value,
+                        });
                       }
                     }}
                     className="cursor-pointer px-3 py-2 text-xs text-gray-800 hover:bg-indigo-50"
@@ -646,7 +705,11 @@ const LeadsTable = ({
                 ? "visible scale-100 opacity-100 pointer-events-auto"
                 : "invisible scale-95 opacity-0 pointer-events-none"
             } ${dropdownPos.placeAbove ? "origin-bottom -translate-y-full" : "origin-top"}`}
-            style={{ top: dropdownPos.top, left: dropdownPos.left, width: `${MENU_WIDTH}px` }}
+            style={{
+              top: dropdownPos.top,
+              left: dropdownPos.left,
+              width: `${MENU_WIDTH}px`,
+            }}
             role="listbox"
             aria-hidden={!dropdownOpen}
           >
@@ -723,6 +786,6 @@ const LeadsTable = ({
         )}
     </div>
   );
-};
+}
 
 export default LeadsTable;
