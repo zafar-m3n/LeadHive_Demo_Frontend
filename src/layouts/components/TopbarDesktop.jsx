@@ -10,6 +10,7 @@ const TopbarDesktop = () => {
   const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
 
   const dropdownRef = useRef(null);
+  const scheduleTimeoutRef = useRef(null);
 
   const user = token.getUserData();
   const isAdmin = user?.role?.value === "admin";
@@ -42,6 +43,36 @@ const TopbarDesktop = () => {
     }
   }, [isAdmin]);
 
+  const getNextNotificationFetchDelay = () => {
+    const now = new Date();
+    const next = new Date(now);
+
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+
+    if (currentHour < 8) {
+      next.setHours(8, 0, 0, 0);
+      return next.getTime() - now.getTime();
+    }
+
+    if (currentHour === 8) {
+      const nextMinute = Math.ceil((currentMinute + 1) / 15) * 15;
+
+      if (nextMinute < 60) {
+        next.setHours(8, nextMinute, 0, 0);
+        return next.getTime() - now.getTime();
+      }
+
+      next.setDate(next.getDate() + 1);
+      next.setHours(8, 0, 0, 0);
+      return next.getTime() - now.getTime();
+    }
+
+    next.setDate(next.getDate() + 1);
+    next.setHours(8, 0, 0, 0);
+    return next.getTime() - now.getTime();
+  };
+
   const handleToggleNotifications = () => {
     setIsNotificationsOpen((prev) => !prev);
   };
@@ -68,14 +99,25 @@ const TopbarDesktop = () => {
   };
 
   useEffect(() => {
-    fetchNotifications();
+    if (!isAdmin) return;
 
-    const intervalId = setInterval(() => {
-      fetchNotifications();
-    }, 60000);
+    const scheduleNextFetch = () => {
+      const delay = getNextNotificationFetchDelay();
 
-    return () => clearInterval(intervalId);
-  }, [fetchNotifications]);
+      scheduleTimeoutRef.current = setTimeout(async () => {
+        await fetchNotifications();
+        scheduleNextFetch();
+      }, delay);
+    };
+
+    scheduleNextFetch();
+
+    return () => {
+      if (scheduleTimeoutRef.current) {
+        clearTimeout(scheduleTimeoutRef.current);
+      }
+    };
+  }, [fetchNotifications, isAdmin]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {

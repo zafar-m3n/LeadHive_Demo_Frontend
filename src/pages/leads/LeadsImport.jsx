@@ -703,7 +703,7 @@ function LeadsImport() {
 
               <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
                 <p className="text-sm text-gray-700">
-                  Maximum recommended size: <span className="font-semibold">300 rows</span> per import.
+                  Imports are processed in <span className="font-semibold">300-row batches</span>.
                 </p>
               </div>
 
