@@ -78,7 +78,7 @@ const RegisterPage = () => {
     <AuthLayout>
       <div className="bg-white shadow-2xl rounded-lg p-6 w-full max-w-md mx-auto border border-gray-100 transition-all duration-300">
         <Heading className="text-center">
-          Create Your <span className="text-accent">LeadHive</span> Account
+          Create Your <span className="text-accent">Elevracorp</span> Account
         </Heading>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-4">

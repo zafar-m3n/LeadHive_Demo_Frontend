@@ -86,9 +86,9 @@ const Sidebar = ({ menuOpen, setMenuOpen, onExpandChange }) => {
       >
         <div className="shadow p-4 flex items-center">
           {isHoverExpanded ? (
-            <img src={logo} alt="LeadHive Logo" className="h-8 w-auto object-contain" />
+            <img src={logo} alt="Elevracorp Logo" className="h-8 w-auto object-contain" />
           ) : (
-            <img src={favicon} alt="LeadHive" className="h-8 w-8 object-contain" />
+            <img src={favicon} alt="Elevracorp" className="h-8 w-8 object-contain" />
           )}
         </div>
 
@@ -106,7 +106,7 @@ const Sidebar = ({ menuOpen, setMenuOpen, onExpandChange }) => {
       >
         <div className="flex justify-between items-center p-4 border-b">
           <div className="flex items-center gap-3">
-            <img src={logo} alt="LeadHive Logo" className="h-8 w-auto object-contain" />
+            <img src={logo} alt="Elevracorp Logo" className="h-8 w-auto object-contain" />
           </div>
           <button
             onClick={() => setMenuOpen(false)}

@@ -6,7 +6,7 @@ const TopbarMobile = ({ setMenuOpen }) => {
   return (
     <div className="md:hidden flex items-center justify-between p-4 bg-white shadow fixed top-0 left-0 right-0 z-30">
       {/* Brand logo (always full logo on mobile) */}
-      <img src={logo} alt="LeadHive Logo" className="h-8 w-auto" />
+      <img src={logo} alt="Elevracorp Logo" className="h-8 w-auto" />
 
       {/* Menu button */}
       <button
