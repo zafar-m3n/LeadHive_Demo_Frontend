@@ -4,6 +4,7 @@ import API from "@/services/index";
 import Notification from "@/components/ui/Notification";
 import Heading from "@/components/ui/Heading";
 import Spinner from "@/components/ui/Spinner";
+import Icon from "@/components/ui/Icon";
 import {
   ResponsiveContainer,
   CartesianGrid,
@@ -19,6 +20,11 @@ import {
 } from "recharts";
 
 const COLORS = ["#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#06B6D4", "#A3E635", "#FB7185"];
+
+const PAYMENT_MADE = import.meta.env.VITE_LEADHIVE_PAYMENT_MADE === "true";
+const SUSPENSION_DATE = new Date("2026-06-20T00:00:00");
+
+const PAYMENT_DAYS_REMAINING = Math.max(0, Math.ceil((SUSPENSION_DATE.getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
 
 function AdminDashboard() {
   const [loading, setLoading] = useState(false);
@@ -88,8 +94,27 @@ function AdminDashboard() {
   return (
     <DefaultLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <Heading>Admin Dashboard</Heading>
+
+          {!PAYMENT_MADE && (
+            <div className="w-full rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900 shadow-sm xl:max-w-2xl">
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 shrink-0">
+                  <Icon icon="mdi:alert-outline" width={22} />
+                </div>
+
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold">Payment has not been settled</p>
+                  <p className="mt-1 text-sm leading-5">
+                    Please settle the pending payment within{" "}
+                    <span className="font-semibold">{PAYMENT_DAYS_REMAINING} days</span>. Services may be interrupted if
+                    the payment is not completed.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {loading ? (

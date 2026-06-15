@@ -41,12 +41,16 @@ import AdminSettings from "@/pages/settings/AdminSettings";
 
 // Shared
 import NotFound from "@/pages/NotFound";
+import SuspendedPage from "@/pages/SuspendedPage";
 
 // Guards & Utilities
 import PrivateRoute from "@/components/PrivateRoute";
 import PublicRoute from "@/components/PublicRoute";
 import token from "@/lib/utilities";
 import Notification from "@/components/ui/Notification";
+
+const PAYMENT_MADE = import.meta.env.VITE_LEADHIVE_PAYMENT_MADE === "true";
+const SUSPENSION_DATE = new Date("2026-06-20T00:00:00");
 
 const protectedRoutes = [
   // Dashboards
@@ -88,18 +92,36 @@ const publicRoutes = [
   { path: "/login", element: LoginPage },
 ];
 
+function getPaymentSuspendedStatus() {
+  if (PAYMENT_MADE) {
+    return false;
+  }
+
+  const now = new Date();
+
+  return now >= SUSPENSION_DATE;
+}
+
 function AppShell() {
   const navigate = useNavigate();
+  const isSuspended = getPaymentSuspendedStatus();
 
   useEffect(() => {
-    // Initialize session (schedule auto-logout, handle immediate expiry)
+    if (isSuspended) {
+      localStorage.clear();
+      sessionStorage.clear();
+      navigate("/suspended", { replace: true });
+      return;
+    }
+
     token.initAuthSession(() => {
       Notification.error("Your session expired. Please log in again.");
       navigate("/login", { replace: true });
     });
-  }, [navigate]);
+  }, [navigate, isSuspended]);
 
   const getDashboardRedirect = () => {
+    if (isSuspended) return "/suspended";
     if (!token.isAuthenticated() || token.isExpired()) return "/login";
 
     const user = token.getUserData();
@@ -116,40 +138,51 @@ function AppShell() {
   return (
     <>
       <Routes>
-        {/* Root redirect by role */}
-        <Route path="/" element={<Navigate to={getDashboardRedirect()} replace />} />
+        {isSuspended ? (
+          <>
+            <Route path="/suspended" element={<SuspendedPage />} />
+            <Route path="*" element={<Navigate to="/suspended" replace />} />
+          </>
+        ) : (
+          <>
+            {/* Root redirect by role */}
+            <Route path="/" element={<Navigate to={getDashboardRedirect()} replace />} />
 
-        {/* Protected routes */}
-        {protectedRoutes.map((route, idx) => (
-          <Route
-            key={idx}
-            path={route.path}
-            element={
-              <PrivateRoute allowedRoles={route.roles}>
-                <route.element />
-              </PrivateRoute>
-            }
-          />
-        ))}
+            {/* Protected routes */}
+            {protectedRoutes.map((route, idx) => (
+              <Route
+                key={idx}
+                path={route.path}
+                element={
+                  <PrivateRoute allowedRoles={route.roles}>
+                    <route.element />
+                  </PrivateRoute>
+                }
+              />
+            ))}
 
-        {/* Public routes */}
-        {publicRoutes.map((route, idx) => (
-          <Route
-            key={idx}
-            path={route.path}
-            element={
-              <PublicRoute>
-                <route.element />
-              </PublicRoute>
-            }
-          />
-        ))}
+            {/* Public routes */}
+            {publicRoutes.map((route, idx) => (
+              <Route
+                key={idx}
+                path={route.path}
+                element={
+                  <PublicRoute>
+                    <route.element />
+                  </PublicRoute>
+                }
+              />
+            ))}
 
-        {/* Not Found */}
-        <Route path="*" element={<NotFound />} />
+            {/* Suspended route available even before suspension */}
+            <Route path="/suspended" element={<SuspendedPage />} />
+
+            {/* Not Found */}
+            <Route path="*" element={<NotFound />} />
+          </>
+        )}
       </Routes>
 
-      {/* Toasts */}
       <ToastContainer
         position="top-right"
         autoClose={2500}

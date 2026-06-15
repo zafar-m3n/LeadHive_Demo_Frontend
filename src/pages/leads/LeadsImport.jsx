@@ -16,6 +16,21 @@ import Papa from "papaparse";
 const OTHER_SOURCE_VALUE = "__other__";
 const OTHER_CAMPAIGN_VALUE = "__other_campaign__";
 
+const IMPORT_NOTE_LABELS = {
+  empty_row: "Empty row skipped",
+  missing_contact_method: "Missing phone or email",
+  missing_name: "Missing first name or last name",
+  invalid_email_format: "Invalid email format",
+  duplicate_email_in_file: "Duplicate email in CSV",
+  duplicate_phone_in_file: "Duplicate phone in CSV",
+  duplicate_email_in_db: "Email already exists",
+  duplicate_phone_in_db: "Phone already exists",
+};
+
+function getImportNoteLabel(note) {
+  return IMPORT_NOTE_LABELS[note] || note;
+}
+
 function LeadsImport() {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
@@ -42,7 +57,6 @@ function LeadsImport() {
   const [importing, setImporting] = useState(false);
   const [result, setResult] = useState(null);
 
-  const [redirectIn, setRedirectIn] = useState(5);
   const [isDragging, setIsDragging] = useState(false);
   const [isConfirmUploadOpen, setIsConfirmUploadOpen] = useState(false);
 
@@ -140,25 +154,6 @@ function LeadsImport() {
     fetchSources();
     fetchCampaigns();
   }, []);
-
-  useEffect(() => {
-    if (!result?.success) return;
-
-    setRedirectIn(5);
-
-    const interval = setInterval(() => {
-      setRedirectIn((s) => (s > 1 ? s - 1 : 0));
-    }, 1000);
-
-    const timeout = setTimeout(() => {
-      navigate("/admin/leads");
-    }, 5000);
-
-    return () => {
-      clearInterval(interval);
-      clearTimeout(timeout);
-    };
-  }, [result?.success, navigate]);
 
   const previewRows = useMemo(() => rows.slice(0, 5), [rows]);
 
@@ -352,6 +347,10 @@ function LeadsImport() {
     const headers = schema.fields;
 
     const sample = headers.map((h) => {
+      if (h === "first_name") return "John";
+      if (h === "last_name") return "Doe";
+      if (h === "email") return "john@example.com";
+      if (h === "phone") return "0771234567";
       if (h === "status") return schema.defaults?.status ?? "New";
       if (h === "source") return "";
       if (h === "campaign") return "";
@@ -423,7 +422,7 @@ function LeadsImport() {
 
                   {!!(result.notes && result.notes.length) && (
                     <div className="mt-4">
-                      <p className="font-medium">Import Notes</p>
+                      <p className="font-medium">Skipped / Import Notes</p>
 
                       <ul className="mt-2 max-h-64 list-inside list-disc space-y-1 overflow-y-auto rounded-2xl border border-green-200 bg-white/70 p-3 text-sm">
                         {result.notes.map((n, idx) => (
@@ -440,7 +439,7 @@ function LeadsImport() {
                                 <span className="opacity-70"> – </span>
                               </>
                             ) : null}
-                            {n.note}
+                            {getImportNoteLabel(n.note)}
                           </li>
                         ))}
                       </ul>
@@ -448,11 +447,6 @@ function LeadsImport() {
                   )}
 
                   <div className="mt-4 flex flex-wrap items-center gap-3">
-                    <p className="text-sm">
-                      Redirecting to <span className="font-semibold">Leads</span> in{" "}
-                      <span className="font-semibold">{redirectIn}</span>s
-                    </p>
-
                     <div className="w-fit">
                       <AccentButton text="Go to Leads now" onClick={() => navigate("/admin/leads")} />
                     </div>
@@ -488,7 +482,7 @@ function LeadsImport() {
                                 <span className="opacity-70"> – </span>
                               </>
                             ) : null}
-                            {n.note}
+                            {getImportNoteLabel(n.note)}
                           </li>
                         ))}
                       </ul>
@@ -707,7 +701,7 @@ function LeadsImport() {
                 </p>
               </div>
 
-              <div className="mt-5 flex justify-center items-center flex-wrap gap-2">
+              <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
                 <div className="w-fit">
                   <AccentButton text="Download Template CSV" onClick={handleDownloadTemplate} />
                 </div>
