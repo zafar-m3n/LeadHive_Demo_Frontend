@@ -108,7 +108,7 @@ function AdminDashboard() {
                   <p className="text-sm font-semibold">Payment has not been settled</p>
                   <p className="mt-1 text-sm leading-5">
                     Please settle the pending payment within{" "}
-                    <span className="font-semibold">{PAYMENT_DAYS_REMAINING} days</span>. Services may be interrupted if
+                    <span className="font-semibold">{PAYMENT_DAYS_REMAINING} days</span>. Services will be interrupted if
                     the payment is not completed.
                   </p>
                 </div>
