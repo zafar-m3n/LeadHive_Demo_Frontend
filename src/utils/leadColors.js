@@ -11,6 +11,7 @@ export const STATUS_COLOR_MAP = {
   registered: "emerald",
   converted: "green",
   retired: "slate",
+  assigned: "cyan",
 };
 
 export const SOURCE_COLOR_MAP = {

@@ -5,6 +5,7 @@ import Notification from "@/components/ui/Notification";
 import Heading from "@/components/ui/Heading";
 import Spinner from "@/components/ui/Spinner";
 import Icon from "@/components/ui/Icon";
+import { getStatusColor } from "@/utils/leadColors";
 import {
   ResponsiveContainer,
   CartesianGrid,
@@ -19,7 +20,27 @@ import {
   Legend,
 } from "recharts";
 
-const COLORS = ["#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#06B6D4", "#A3E635", "#FB7185"];
+const CHART_COLOR_MAP = {
+  blue: "#3B82F6",
+  yellow: "#EAB308",
+  indigo: "#6366F1",
+  purple: "#8B5CF6",
+  orange: "#F97316",
+  red: "#EF4444",
+  pink: "#EC4899",
+  teal: "#14B8A6",
+  gray: "#6B7280",
+  emerald: "#10B981",
+  green: "#22C55E",
+  slate: "#64748B",
+  cyan: "#06B6D4",
+  lime: "#84CC16",
+  amber: "#F59E0B",
+  rose: "#F43F5E",
+  violet: "#8B5CF6",
+  fuchsia: "#D946EF",
+  sky: "#0EA5E9",
+};
 
 const PAYMENT_MADE = import.meta.env.VITE_LEADHIVE_PAYMENT_MADE === "true";
 const SUSPENSION_DATE = new Date("2026-06-20T00:00:00");
@@ -85,10 +106,21 @@ function AdminDashboard() {
       return [];
     }
 
-    return summary.leadsByStatus.map((row) => ({
-      name: row["LeadStatus.label"] || row?.LeadStatus?.label || "Unknown",
-      value: Number(row.count || 0),
-    }));
+    return summary.leadsByStatus.map((row) => {
+      const statusLabel = row["LeadStatus.label"] || row?.LeadStatus?.label || "Unknown";
+
+      const statusValue = row["LeadStatus.value"] || row?.LeadStatus?.value || statusLabel;
+
+      const colorName = getStatusColor(statusValue);
+
+      return {
+        name: statusLabel,
+        statusValue,
+        colorName,
+        color: CHART_COLOR_MAP[colorName] || CHART_COLOR_MAP.gray,
+        value: Number(row.count || 0),
+      };
+    });
   }, [summary]);
 
   return (
@@ -108,8 +140,8 @@ function AdminDashboard() {
                   <p className="text-sm font-semibold">Payment has not been settled</p>
                   <p className="mt-1 text-sm leading-5">
                     Please settle the pending payment within{" "}
-                    <span className="font-semibold">{PAYMENT_DAYS_REMAINING} days</span>. Services will be interrupted if
-                    the payment is not completed.
+                    <span className="font-semibold">{PAYMENT_DAYS_REMAINING} days</span>. Services will be interrupted
+                    if the payment is not completed.
                   </p>
                 </div>
               </div>
@@ -170,7 +202,7 @@ function AdminDashboard() {
                         outerRadius="80%"
                       >
                         {leadsByStatusPie.map((entry, idx) => (
-                          <Cell key={`status-cell-${entry.name}-${idx}`} fill={COLORS[idx % COLORS.length]} />
+                          <Cell key={`status-cell-${entry.statusValue}-${idx}`} fill={entry.color} />
                         ))}
                       </Pie>
                     </PieChart>
