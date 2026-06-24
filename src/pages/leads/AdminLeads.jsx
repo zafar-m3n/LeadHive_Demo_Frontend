@@ -67,6 +67,7 @@ const AdminLeads = () => {
   const isAdminOrManager = role === "admin" || role === "manager";
 
   const [leads, setLeads] = useState([]);
+  const [totalLeads, setTotalLeads] = useState(0);
   const [statuses, setStatuses] = useState([]);
   const [sources, setSources] = useState([]);
   const [campaigns, setCampaigns] = useState([]);
@@ -145,6 +146,7 @@ const AdminLeads = () => {
 
       if (res.data?.code === "OK") {
         setLeads(res.data.data.leads || []);
+        setTotalLeads(res.data.data.pagination.total);
         setTotalPages(res.data.data.pagination.totalPages);
         setSelectedIds([]);
       }
@@ -554,6 +556,7 @@ const AdminLeads = () => {
     setAssignedTo(DEFAULT_FILTERS.assignedTo);
     setLimit(DEFAULT_FILTERS.limit);
     setPage(DEFAULT_FILTERS.page);
+    setTotalLeads(0);
 
     token.setPersistedLeadsFilters({
       statusIds: DEFAULT_FILTERS.statusIds,
@@ -672,6 +675,7 @@ const AdminLeads = () => {
           onLimitChange={handleLimitChange}
           onChange={handleToolbarChange}
           onResetAll={resetAllFilters}
+          totalLeads={totalLeads}
         />
 
         {hasSelection && (

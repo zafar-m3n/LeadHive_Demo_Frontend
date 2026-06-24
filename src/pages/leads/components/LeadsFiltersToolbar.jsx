@@ -105,6 +105,7 @@ const LeadsFiltersToolbar = ({
   orderDirOptions = [],
   assigneeOptions = [],
   showAssignee = false,
+  totalLeads = 0,
   values = {
     search: "",
     statusIds: [],
@@ -425,28 +426,34 @@ const LeadsFiltersToolbar = ({
         />
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        {chips.length > 0 ? (
-          chips.map((chip) => (
-            <span
-              key={chip.key}
-              className="inline-flex items-center gap-1 rounded-full bg-accent/10 px-2.5 py-1 text-xs text-gray-800"
-            >
-              <IconComponent icon="mdi:tag-multiple" width={14} className="text-amber-600" />
-              {chip.label}
-              <button
-                onClick={() => clearChip(chip.key)}
-                className="rounded-full p-0.5 hover:bg-black/5"
-                aria-label="Clear"
-                title="Clear"
+      <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          {chips.length > 0 ? (
+            chips.map((chip) => (
+              <span
+                key={chip.key}
+                className="inline-flex items-center gap-1 rounded-full bg-accent/10 px-2.5 py-1 text-xs text-gray-800"
               >
-                <IconComponent icon="mdi:close" width={14} className="text-gray-700" />
-              </button>
-            </span>
-          ))
-        ) : (
-          <span className="text-xs text-gray-500">No active filters</span>
-        )}
+                <IconComponent icon="mdi:tag-multiple" width={14} className="text-amber-600" />
+                {chip.label}
+                <button
+                  onClick={() => clearChip(chip.key)}
+                  className="rounded-full p-0.5 hover:bg-black/5"
+                  aria-label="Clear"
+                  title="Clear"
+                >
+                  <IconComponent icon="mdi:close" width={14} className="text-gray-700" />
+                </button>
+              </span>
+            ))
+          ) : (
+            <span className="text-xs text-gray-500">No active filters</span>
+          )}
+        </div>
+
+        <div className="shrink-0 self-end text-xs">
+          <span className="font-semibold text-accent text-sm">{totalLeads}</span> leads found
+        </div>
       </div>
     </div>
   );
