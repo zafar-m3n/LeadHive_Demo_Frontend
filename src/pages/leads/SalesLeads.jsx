@@ -118,6 +118,7 @@ const SalesLeads = () => {
   const [page, setPage] = useState(() => initial.page);
   const [limit, setLimit] = useState(() => initial.limit);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalLeads, setTotalLeads] = useState(0);
 
   const [statusIds, setStatusIds] = useState(() => initial.statusIds);
   const [sourceIds, setSourceIds] = useState(() => initial.sourceIds);
@@ -162,6 +163,7 @@ const SalesLeads = () => {
       if (res.data?.code === "OK") {
         setLeads(res.data.data.leads || []);
         setTotalPages(res.data.data.pagination.totalPages);
+        setTotalLeads(res.data.data.pagination.total);
       }
     } catch (err) {
       Notification.error(err.response?.data?.error || "Failed to fetch leads");
@@ -428,6 +430,7 @@ const SalesLeads = () => {
     setAssignedTo(DEFAULT_FILTERS.assignedTo);
     setLimit(DEFAULT_FILTERS.limit);
     setPage(DEFAULT_FILTERS.page);
+    setTotalLeads(0);
 
     token.setPersistedLeadsFilters({
       statusIds: DEFAULT_FILTERS.statusIds,
@@ -483,6 +486,7 @@ const SalesLeads = () => {
           onLimitChange={handleLimitChange}
           onChange={handleToolbarChange}
           onResetAll={resetAllFilters}
+          totalLeads={totalLeads}
         />
 
         <div className="relative">

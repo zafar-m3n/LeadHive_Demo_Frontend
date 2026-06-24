@@ -86,6 +86,7 @@ const ManagerLeads = () => {
   const [page, setPage] = useState(() => initial.page);
   const [limit, setLimit] = useState(() => initial.limit);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalLeads, setTotalLeads] = useState(0);
 
   const [statusIds, setStatusIds] = useState(() => initial.statusIds);
   const [sourceIds, setSourceIds] = useState(() => initial.sourceIds);
@@ -143,6 +144,7 @@ const ManagerLeads = () => {
 
       if (res.data?.code === "OK") {
         setLeads(res.data.data.leads || []);
+        setTotalLeads(res.data.data.pagination.total);
         setTotalPages(res.data.data.pagination.totalPages);
         setSelectedIds([]);
       }
@@ -568,6 +570,7 @@ const ManagerLeads = () => {
     setAssignedTo(DEFAULT_FILTERS.assignedTo);
     setLimit(DEFAULT_FILTERS.limit);
     setPage(DEFAULT_FILTERS.page);
+    setTotalLeads(0);
 
     token.setPersistedLeadsFilters({
       statusIds: DEFAULT_FILTERS.statusIds,
@@ -672,6 +675,7 @@ const ManagerLeads = () => {
           onLimitChange={handleLimitChange}
           onChange={handleToolbarChange}
           onResetAll={resetAllFilters}
+          totalLeads={totalLeads}
         />
 
         {hasSelection && (
