@@ -47,6 +47,26 @@ const SUSPENSION_DATE = new Date("2026-06-20T00:00:00");
 
 const PAYMENT_DAYS_REMAINING = Math.max(0, Math.ceil((SUSPENSION_DATE.getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
 
+function hasChartData(data) {
+  return Array.isArray(data) && data.some((item) => Number(item.count || item.value || 0) > 0);
+}
+
+function EmptyChartState({ icon = "mdi:chart-box-outline", title, message }) {
+  return (
+    <div className="flex h-80 items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50 px-6 text-center">
+      <div>
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-white text-gray-400 shadow-sm">
+          <Icon icon={icon} width={24} />
+        </div>
+
+        <h3 className="mt-4 text-sm font-semibold text-gray-900">{title}</h3>
+
+        <p className="mx-auto mt-1 max-w-sm text-sm leading-5 text-gray-500">{message}</p>
+      </div>
+    </div>
+  );
+}
+
 function AdminDashboard() {
   const [loading, setLoading] = useState(false);
   const [summary, setSummary] = useState(null);
@@ -123,6 +143,18 @@ function AdminDashboard() {
     });
   }, [summary]);
 
+  const hasStatusChartData = useMemo(() => {
+    return hasChartData(leadsByStatusPie);
+  }, [leadsByStatusPie]);
+
+  const hasSourceChartData = useMemo(() => {
+    return hasChartData(leadsBySourceData);
+  }, [leadsBySourceData]);
+
+  const hasCampaignChartData = useMemo(() => {
+    return hasChartData(leadsByCampaignData);
+  }, [leadsByCampaignData]);
+
   return (
     <DefaultLayout>
       <div className="space-y-6">
@@ -186,60 +218,84 @@ function AdminDashboard() {
               <section className="rounded-xl border border-gray-200 bg-white p-5">
                 <h2 className="mb-4 text-lg font-semibold text-gray-900">Leads per Status</h2>
 
-                <div className="h-80">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Tooltip />
-                      <Legend verticalAlign="bottom" height={36} />
+                {hasStatusChartData ? (
+                  <div className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Tooltip />
+                        <Legend verticalAlign="bottom" height={36} />
 
-                      <Pie
-                        data={leadsByStatusPie}
-                        dataKey="value"
-                        nameKey="name"
-                        cx="50%"
-                        cy="50%"
-                        innerRadius="50%"
-                        outerRadius="80%"
-                      >
-                        {leadsByStatusPie.map((entry, idx) => (
-                          <Cell key={`status-cell-${entry.statusValue}-${idx}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
+                        <Pie
+                          data={leadsByStatusPie}
+                          dataKey="value"
+                          nameKey="name"
+                          cx="50%"
+                          cy="50%"
+                          innerRadius="50%"
+                          outerRadius="80%"
+                        >
+                          {leadsByStatusPie.map((entry, idx) => (
+                            <Cell key={`status-cell-${entry.statusValue}-${idx}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <EmptyChartState
+                    icon="mdi:chart-donut"
+                    title="No status data available yet"
+                    message="Once leads are created and assigned statuses, the status breakdown chart will appear here."
+                  />
+                )}
               </section>
 
               <section className="rounded-xl border border-gray-200 bg-white p-5">
                 <h2 className="mb-4 text-lg font-semibold text-gray-900">Leads per Source</h2>
 
-                <div className="h-80">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={leadsBySourceData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="label" />
-                      <YAxis allowDecimals={false} />
-                      <Tooltip />
-                      <Bar dataKey="count" fill="#3B82F6" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
+                {hasSourceChartData ? (
+                  <div className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={leadsBySourceData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="label" />
+                        <YAxis allowDecimals={false} />
+                        <Tooltip />
+                        <Bar dataKey="count" fill="#3B82F6" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <EmptyChartState
+                    icon="mdi:source-branch"
+                    title="No sources added yet"
+                    message="Lead sources have not been added or linked to leads yet. Once source data is available, this chart will appear here."
+                  />
+                )}
               </section>
 
               <section className="rounded-xl border border-gray-200 bg-white p-5 lg:col-span-2">
                 <h2 className="mb-4 text-lg font-semibold text-gray-900">Leads per Campaign</h2>
 
-                <div className="h-80">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={leadsByCampaignData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="label" />
-                      <YAxis allowDecimals={false} />
-                      <Tooltip />
-                      <Bar dataKey="count" fill="#10B981" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
+                {hasCampaignChartData ? (
+                  <div className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={leadsByCampaignData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="label" />
+                        <YAxis allowDecimals={false} />
+                        <Tooltip />
+                        <Bar dataKey="count" fill="#10B981" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <EmptyChartState
+                    icon="mdi:bullhorn-outline"
+                    title="No campaign data available yet"
+                    message="Campaigns have not been added or linked to leads yet. Once campaign data is available, this chart will appear here."
+                  />
+                )}
               </section>
             </div>
           </>
